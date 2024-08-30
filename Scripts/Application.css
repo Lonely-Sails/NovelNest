@@ -1,0 +1,20 @@
+Header {
+    height: 1;
+}
+
+Screen#welcome {
+    align: center middle;
+}
+
+Screen#welcome Input {
+    width: 70%;
+}
+
+Screen#welcome Label {
+    margin-bottom: 1;
+}
+
+Screen#result Input {
+    dock: top;
+    margin-top: 1;
+}
