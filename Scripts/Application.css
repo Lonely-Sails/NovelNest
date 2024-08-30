@@ -18,3 +18,13 @@ Screen#result Input {
     dock: top;
     margin-top: 1;
 }
+
+Screen#information Container {
+    padding: 1;
+    dock: top;
+    margin-top: 1;
+}
+
+Screen#information Label {
+    width: 100%;
+}

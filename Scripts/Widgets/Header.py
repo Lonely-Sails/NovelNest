@@ -7,12 +7,27 @@ from textual.reactive import Reactive
 class Icon(HeaderIcon):
     icon = Reactive('x')
 
-    def _on_click(self, event: Click):
+    def on_click(self, event: Click):
         self.app.exit()
 
 
 class Header(TextualHeader):
     def compose(self):
         yield Icon()
+        yield HeaderTitle()
+        yield HeaderClock()
+
+
+class BackIcon(HeaderIcon):
+    icon = Reactive('<')
+
+    def on_click(self, event: Click):
+        screen = self.app.pop_screen()
+        self.app.uninstall_screen(screen)
+
+
+class BackHeader(TextualHeader):
+    def compose(self):
+        yield BackIcon()
         yield HeaderTitle()
         yield HeaderClock()

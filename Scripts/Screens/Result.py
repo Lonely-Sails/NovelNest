@@ -4,8 +4,10 @@ from textual.screen import Screen
 from textual.widgets import DataTable
 from textual.events import MouseUp
 
+from .Information import InformationScreen
+from Scripts.Utils import deal_timestamp
 from Scripts.Widgets import Header, Footer, Input
-from Scripts.Novel import search_book
+from Scripts.Novel import get_book_info, search_book
 
 
 class ResultScreen(Screen):
@@ -34,9 +36,9 @@ class ResultScreen(Screen):
 
     def on_mouse_up(self, event: MouseUp):
         table = self.query_one(DataTable)
-        if row := table.hover_row:
-            book_info = self.search_result[row]
-            raise Exception(book_info)
+        if event.y <= (4 + table.row_count):
+            book_info = self.search_result[table.hover_row]
+            self.search_task = asyncio.create_task(self.search_book_info(book_info))
 
     def on_input_submitted(self, event: Input.Submitted):
         input_box = self.query_one(Input)
@@ -49,9 +51,9 @@ class ResultScreen(Screen):
         table = self.query_one(DataTable)
         table.clear()
         for book in self.search_result:
-            timestamp = str(book['time_update'])
+            timestamp = deal_timestamp(book['time_update'])
             last_chapter, name, author = book['last_chapter_name'], book['book_name'], book['author']
-            table.add_row(name, author, F'{timestamp[:4]}-{timestamp[4:6]}-{timestamp[6:8]}', last_chapter)
+            table.add_row(name, author, timestamp, last_chapter)
 
     async def search_book(self, keyword: str):
         footer = self.query_one(Footer)
@@ -65,4 +67,21 @@ class ResultScreen(Screen):
             return self.search_task.cancel()
         input_box.disabled = False
         footer.update('网络遇到问题，查询失败！')
+        return self.search_task.cancel()
+
+    async def search_book_info(self, book_info: dict):
+        footer = self.query_one(Footer)
+        table = self.query_one(DataTable)
+        input_box = self.query_one(Input)
+        table.disabled = True
+        input_box.disabled = True
+        if result := await get_book_info(book_info):
+            table.disabled = False
+            input_box.disabled = False
+            screen = InformationScreen(result)
+            await self.app.push_screen(screen)
+            return self.search_task.cancel()
+        table.disabled = False
+        input_box.disabled = False
+        footer.update('网络遇到问题，加载书籍信息失败！')
         return self.search_task.cancel()
