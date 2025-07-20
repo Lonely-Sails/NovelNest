@@ -1,0 +1,9 @@
+{
+    "id": "example-source",
+    "name": "示例书源",
+    "version": "1.0.0",
+    "author": "NovelNest Team",
+    "description": "这是一个示例书源插件，用于演示插件系统的工作原理",
+    "baseUrl": "https://api.example.com",
+    "script": "index.js"
+}
