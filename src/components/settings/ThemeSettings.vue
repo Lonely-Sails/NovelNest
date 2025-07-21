@@ -65,14 +65,10 @@
             <span class="label-text">跟随系统主题</span>
             <span class="label-desc">自动根据系统主题切换明暗模式</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.followSystemTheme"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.followSystemTheme"
+            @change="updateSettings"
+          />
         </div>
         
         <div class="setting-item">
@@ -80,14 +76,10 @@
             <span class="label-text">启用动画效果</span>
             <span class="label-desc">界面切换和交互动画</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.enableAnimations"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.enableAnimations"
+            @change="updateSettings"
+          />
         </div>
         
         <div class="setting-item">
@@ -95,14 +87,10 @@
             <span class="label-text">紧凑模式</span>
             <span class="label-desc">减少界面元素间距，显示更多内容</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.compactMode"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.compactMode"
+            @change="updateSettings"
+          />
         </div>
         
         <div class="setting-item">
@@ -158,14 +146,10 @@
             <span class="label-text">启用自定义颜色</span>
             <span class="label-desc">使用自定义颜色替代主题默认颜色</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.useCustomColors"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.useCustomColors"
+            @change="updateSettings"
+          />
         </div>
       </div>
     </div>
@@ -203,12 +187,12 @@
     
     <!-- 操作按钮 -->
     <div class="settings-actions">
-      <button class="btn-secondary" @click="resetToDefaults">
+      <BaseButton @click="resetToDefaults" variant="secondary">
         恢复默认主题
-      </button>
-      <button class="btn-primary" @click="saveSettings" :disabled="saving">
-        {{ saving ? '保存中...' : '应用主题' }}
-      </button>
+      </BaseButton>
+      <BaseButton @click="saveSettings" variant="primary" :loading="saving">
+        应用主题
+      </BaseButton>
     </div>
   </div>
 </template>

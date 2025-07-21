@@ -1,17 +1,18 @@
 <template>
-  <div class="plugin-card" :class="{ 'plugin-disabled': !plugin.enabled }">
-    <div class="plugin-header">
+  <BaseCard class="plugin-card" :class="{ 'plugin-disabled': !plugin.enabled }">
+    <template #header>
       <div class="plugin-info">
         <h3 class="plugin-name">{{ plugin.name }}</h3>
         <p class="plugin-author">作者: {{ plugin.author || '未知' }}</p>
         <p class="plugin-version">版本: {{ plugin.version }}</p>
       </div>
-      <div class="plugin-status">
-        <span class="status-badge" :class="plugin.enabled ? 'status-enabled' : 'status-disabled'">
-          {{ plugin.enabled ? '已启用' : '已禁用' }}
-        </span>
-      </div>
-    </div>
+      <BaseBadge 
+        :variant="plugin.enabled ? 'success' : 'warning'"
+        class="plugin-status"
+      >
+        {{ plugin.enabled ? '已启用' : '已禁用' }}
+      </BaseBadge>
+    </template>
     
     <div class="plugin-description">
       <p>{{ plugin.description || '暂无描述' }}</p>
@@ -20,63 +21,67 @@
       </div>
     </div>
     
-    <div class="plugin-actions">
-      <button 
-        class="btn btn-primary"
-        :class="{ 'btn-secondary': plugin.enabled }"
+    <template #actions>
+      <BaseButton 
+        :variant="plugin.enabled ? 'secondary' : 'primary'"
         @click="togglePlugin"
-        :disabled="loading"
+        :loading="loading"
       >
         {{ plugin.enabled ? '禁用' : '启用' }}
-      </button>
+      </BaseButton>
       
-      <button 
-        class="btn btn-outline"
+      <BaseButton 
+        variant="outline"
         @click="testPlugin"
         :disabled="loading || !plugin.enabled"
       >
         测试
-      </button>
+      </BaseButton>
       
-      <button 
-        class="btn btn-danger"
+      <BaseButton 
+        variant="danger"
         @click="removePlugin"
-        :disabled="loading"
+        :loading="loading"
       >
         删除
-      </button>
-    </div>
+      </BaseButton>
+    </template>
     
     <div class="plugin-error" v-if="error">
-      <div class="error-message">
+      <BaseBadge variant="error" class="error-message">
         <span class="error-icon">⚠️</span>
         {{ error }}
-      </div>
+      </BaseBadge>
     </div>
     
     <div class="plugin-test-result" v-if="testResult">
-      <div class="test-success" v-if="testResult.success">
-        <div class="test-summary">
+      <BaseBadge 
+        :variant="testResult.success ? 'success' : 'error'" 
+        class="test-result-badge"
+      >
+        <span v-if="testResult.success">
           <span class="success-icon">✅</span>
           测试成功: 找到 {{ testResult.count }} 个搜索结果
-        </div>
-        <div class="test-details" v-if="testResult.details && testResult.details.length > 0">
-          <ul>
-            <li v-for="detail in testResult.details" :key="detail">{{ detail }}</li>
-          </ul>
-        </div>
-      </div>
-      <div class="test-error" v-else>
-        <span class="error-icon">❌</span>
-        测试失败: {{ testResult.error }}
+        </span>
+        <span v-else>
+          <span class="error-icon">❌</span>
+          测试失败: {{ testResult.error }}
+        </span>
+      </BaseBadge>
+      
+      <div class="test-details" v-if="testResult.success && testResult.details && testResult.details.length > 0">
+        <ul>
+          <li v-for="detail in testResult.details" :key="detail">{{ detail }}</li>
+        </ul>
       </div>
     </div>
-  </div>
+  </BaseCard>
 </template>
 
 <script>
 export default {
   name: 'PluginCard',
+  // 基础组件已全局注册，无需导入
   props: {
     plugin: {
       type: Object,
@@ -154,28 +159,11 @@ export default {
 
 <style scoped>
 .plugin-card {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 1.5rem;
   margin-bottom: 1rem;
-  transition: all 0.2s ease;
-}
-
-.plugin-card:hover {
-  border-color: var(--primary-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .plugin-disabled {
   opacity: 0.7;
-}
-
-.plugin-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
 }
 
 .plugin-info h3 {
@@ -190,31 +178,6 @@ export default {
   color: var(--text-secondary);
   font-size: 0.85rem;
   margin: 0.125rem 0;
-}
-
-.plugin-status {
-  flex-shrink: 0;
-}
-
-.status-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.status-enabled {
-  background: var(--success-bg);
-  color: var(--success-color);
-}
-
-.status-disabled {
-  background: var(--warning-bg);
-  color: var(--warning-color);
-}
-
-.plugin-description {
-  margin-bottom: 1.5rem;
 }
 
 .plugin-description p {
@@ -233,108 +196,23 @@ export default {
   font-size: 0.8rem;
 }
 
-.plugin-actions {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.btn {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: none;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 60px;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--primary-color);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--primary-hover);
-}
-
-.btn-secondary {
-  background: var(--text-secondary);
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--text-primary);
-}
-
-.btn-outline {
-  background: transparent;
-  color: var(--primary-color);
-  border: 1px solid var(--primary-color);
-}
-
-.btn-outline:hover:not(:disabled) {
-  background: var(--primary-color);
-  color: white;
-}
-
-.btn-danger {
-  background: var(--error-color);
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: var(--error-hover);
-}
-
 .plugin-error,
 .plugin-test-result {
   margin-top: 1rem;
-  padding: 0.75rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
 }
 
-.plugin-error {
-  background: var(--error-bg);
-  border: 1px solid var(--error-color);
-}
-
-.error-message {
-  color: var(--error-color);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.plugin-test-result {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-}
-
-.test-success {
-  color: var(--success-color);
-}
-
-.test-summary {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.test-result-badge {
+  display: block;
   margin-bottom: 0.5rem;
 }
 
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .test-details {
-  margin-left: 1.5rem;
   font-size: 0.8rem;
 }
 
@@ -347,13 +225,6 @@ export default {
 .test-details li {
   margin-bottom: 0.25rem;
   color: var(--text-secondary);
-}
-
-.test-error {
-  color: var(--error-color);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .error-icon,

@@ -1,101 +1,88 @@
 <template>
   <div class="plugins-view">
     <div class="page-header">
-      <h1>插件管理</h1>
-      <p class="page-description">管理书源插件，扩展应用功能</p>
-      
+      <div class="header-content">
+        <h1>插件管理</h1>
+        <p class="page-description">管理书源插件，扩展应用功能</p>
+      </div>
+
       <div class="header-actions">
-        <button class="btn btn-primary" @click="showInstallDialog = true">
-          <span class="btn-icon">📦</span>
+        <BaseButton @click="showInstallDialog = true" variant="primary" icon="📦">
           安装插件
-        </button>
-        <button class="btn btn-outline" @click="refreshPlugins" :disabled="loading">
-          <span class="btn-icon">🔄</span>
+        </BaseButton>
+        <BaseButton @click="refreshPlugins" variant="outline" :loading="loading" icon="🔄">
           刷新
-        </button>
+        </BaseButton>
       </div>
     </div>
-    
+
     <!-- 插件统计 -->
     <div class="plugins-stats" v-if="bookSources.length > 0">
-      <div class="stat-card">
+      <BaseCard class="stat-card" compact>
         <div class="stat-number">{{ bookSources.length }}</div>
         <div class="stat-label">总插件数</div>
-      </div>
-      <div class="stat-card">
+      </BaseCard>
+      <BaseCard class="stat-card" compact>
         <div class="stat-number">{{ enabledSources.length }}</div>
         <div class="stat-label">已启用</div>
-      </div>
-      <div class="stat-card">
+      </BaseCard>
+      <BaseCard class="stat-card" compact>
         <div class="stat-number">{{ disabledSources.length }}</div>
         <div class="stat-label">已禁用</div>
-      </div>
+      </BaseCard>
     </div>
-    
+
     <!-- 插件列表 -->
     <div class="plugins-content">
       <Loading v-if="loading" message="加载插件中..." />
-      
-      <div v-else-if="bookSources.length === 0" class="empty-state">
+
+      <BaseCard v-else-if="bookSources.length === 0" class="empty-state">
         <div class="empty-icon">🔌</div>
         <h3>暂无插件</h3>
         <p>点击"安装插件"按钮添加书源插件</p>
-        <button class="btn btn-primary" @click="showInstallDialog = true">
-          安装第一个插件
-        </button>
-      </div>
-      
+        <template #actions>
+          <BaseButton @click="showInstallDialog = true" variant="primary">
+            安装第一个插件
+          </BaseButton>
+        </template>
+      </BaseCard>
+
       <div v-else class="plugins-list">
         <div class="plugins-filter">
           <div class="filter-tabs">
-            <button 
-              class="filter-tab"
-              :class="{ active: currentFilter === 'all' }"
-              @click="currentFilter = 'all'"
-            >
+            <BaseButton :variant="currentFilter === 'all' ? 'primary' : 'outline'" size="small"
+              @click="currentFilter = 'all'">
               全部 ({{ bookSources.length }})
-            </button>
-            <button 
-              class="filter-tab"
-              :class="{ active: currentFilter === 'enabled' }"
-              @click="currentFilter = 'enabled'"
-            >
+            </BaseButton>
+            <BaseButton :variant="currentFilter === 'enabled' ? 'primary' : 'outline'" size="small"
+              @click="currentFilter = 'enabled'">
               已启用 ({{ enabledSources.length }})
-            </button>
-            <button 
-              class="filter-tab"
-              :class="{ active: currentFilter === 'disabled' }"
-              @click="currentFilter = 'disabled'"
-            >
+            </BaseButton>
+            <BaseButton :variant="currentFilter === 'disabled' ? 'primary' : 'outline'" size="small"
+              @click="currentFilter = 'disabled'">
               已禁用 ({{ disabledSources.length }})
-            </button>
+            </BaseButton>
           </div>
         </div>
-        
+
         <div class="plugins-grid">
-          <PluginCard
-            v-for="plugin in filteredSources"
-            :key="plugin.id"
-            :plugin="plugin"
-            @toggle="handleTogglePlugin"
-            @remove="handleRemovePlugin"
-            @test="handleTestPlugin"
-          />
+          <PluginCard v-for="plugin in filteredSources" :key="plugin.id" :plugin="plugin" @toggle="handleTogglePlugin"
+            @remove="handleRemovePlugin" @test="handleTestPlugin" />
         </div>
-        
+
         <!-- 插件监控面板 -->
         <div class="plugin-monitor-section" v-if="bookSources.length > 0">
           <PluginMonitor />
         </div>
       </div>
     </div>
-    
+
     <!-- 安装插件对话框 -->
     <Modal v-if="showInstallDialog" @close="showInstallDialog = false">
       <template #header>
         <h3>安装插件</h3>
       </template>
-      
+
       <template #body>
         <div class="install-dialog">
           <div class="install-methods">
@@ -104,53 +91,38 @@
               <h4>从文件安装</h4>
               <p>选择本地的 .js 插件文件</p>
             </div>
-            
+
             <div class="method-card disabled" title="功能开发中">
               <div class="method-icon">🌐</div>
               <h4>在线安装</h4>
               <p>从插件商店安装（开发中）</p>
             </div>
           </div>
-          
+
           <div v-if="installMethod === 'file'" class="file-install">
-            <div class="file-drop-zone" 
-                 :class="{ 'drag-over': dragOver }"
-                 @drop="handleFileDrop"
-                 @dragover.prevent="dragOver = true"
-                 @dragleave="dragOver = false"
-                 @click="selectFile">
+            <div class="file-drop-zone" :class="{ 'drag-over': dragOver }" @drop="handleFileDrop"
+              @dragover.prevent="dragOver = true" @dragleave="dragOver = false" @click="selectFile">
               <div class="drop-content">
                 <div class="drop-icon">📄</div>
                 <p>拖拽插件文件到此处，或点击选择文件</p>
                 <small>支持 .js 格式的插件文件</small>
               </div>
             </div>
-            
-            <input 
-              ref="fileInput"
-              type="file"
-              accept=".js"
-              style="display: none"
-              @change="handleFileSelect"
-            />
+
+            <input ref="fileInput" type="file" accept=".js" style="display: none" @change="handleFileSelect" />
           </div>
         </div>
       </template>
-      
+
       <template #footer>
-        <button class="btn btn-secondary" @click="showInstallDialog = false">
+        <BaseButton @click="showInstallDialog = false" variant="secondary">
           取消
-        </button>
+        </BaseButton>
       </template>
     </Modal>
-    
+
     <!-- Toast 提示 -->
-    <Toast 
-      v-if="toast.show"
-      :type="toast.type"
-      :message="toast.message"
-      @close="toast.show = false"
-    />
+    <Toast v-if="toast.show" :type="toast.type" :message="toast.message" @close="toast.show = false" />
   </div>
 </template>
 
@@ -224,12 +196,12 @@ export default {
         this.loading = false
       }
     },
-    
+
     async refreshPlugins() {
       await this.loadPlugins()
       this.showToast('success', '插件列表已刷新')
     },
-    
+
     async handleTogglePlugin(pluginId, enabled) {
       try {
         await this.pluginStore.toggleBookSource(pluginId, enabled)
@@ -240,7 +212,7 @@ export default {
         throw error
       }
     },
-    
+
     async handleRemovePlugin(pluginId) {
       try {
         await this.pluginStore.removeBookSource(pluginId)
@@ -250,12 +222,12 @@ export default {
         throw error
       }
     },
-    
+
     async handleTestPlugin(pluginId) {
       try {
         // 使用插件商店的测试方法
         const result = await this.pluginStore.testPlugin(pluginId)
-        
+
         if (result.success) {
           return {
             success: true,
@@ -275,36 +247,36 @@ export default {
         }
       }
     },
-    
+
     selectInstallMethod(method) {
       this.installMethod = method
     },
-    
+
     selectFile() {
       this.$refs.fileInput.click()
     },
-    
+
     async handleFileSelect(event) {
       const file = event.target.files[0]
       if (file) {
         await this.installPluginFile(file.path)
       }
     },
-    
+
     async handleFileDrop(event) {
       event.preventDefault()
       this.dragOver = false
-      
+
       const files = Array.from(event.dataTransfer.files)
       const jsFile = files.find(file => file.name.endsWith('.js'))
-      
+
       if (jsFile) {
         await this.installPluginFile(jsFile.path)
       } else {
         this.showToast('error', '请选择 .js 格式的插件文件')
       }
     },
-    
+
     async installPluginFile(filePath) {
       try {
         // 如果没有文件路径，打开文件选择对话框
@@ -316,32 +288,32 @@ export default {
               extensions: ['js']
             }]
           })
-          
+
           if (!selected) return
           filePath = selected
         }
-        
+
         this.loading = true
         await this.pluginStore.loadBookSource(filePath)
-        
+
         this.showInstallDialog = false
         this.installMethod = null
         this.showToast('success', '插件安装成功')
-        
+
       } catch (error) {
         this.showToast('error', '安装失败: ' + error.message)
       } finally {
         this.loading = false
       }
     },
-    
+
     showToast(type, message) {
       this.toast = {
         show: true,
         type,
         message
       }
-      
+
       // 3秒后自动关闭
       setTimeout(() => {
         this.toast.show = false
@@ -366,7 +338,7 @@ export default {
   gap: 2rem;
 }
 
-.page-header h1 {
+.header-content h1 {
   color: var(--text-primary);
   font-size: 1.8rem;
   font-weight: 600;
@@ -384,58 +356,24 @@ export default {
   flex-shrink: 0;
 }
 
-.btn {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: none;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .header-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  
+  .header-actions > * {
+    flex: 1;
+  }
 }
 
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--primary-color);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--primary-hover);
-}
-
-.btn-outline {
-  background: transparent;
-  color: var(--primary-color);
-  border: 1px solid var(--primary-color);
-}
-
-.btn-outline:hover:not(:disabled) {
-  background: var(--primary-color);
-  color: white;
-}
-
-.btn-secondary {
-  background: var(--text-secondary);
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--text-primary);
-}
-
-.btn-icon {
-  font-size: 1rem;
-}
+/* 按钮样式已由BaseButton组件提供 */
 
 /* 插件统计 */
 .plugins-stats {
@@ -446,10 +384,6 @@ export default {
 }
 
 .stat-card {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 1.5rem;
   text-align: center;
 }
 
@@ -468,9 +402,6 @@ export default {
 
 /* 插件内容区域 */
 .plugins-content {
-  background: var(--bg-primary);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
   min-height: 400px;
 }
 
@@ -512,26 +443,7 @@ export default {
   display: flex;
   gap: 0.5rem;
   border-bottom: 1px solid var(--border-color);
-}
-
-.filter-tab {
-  padding: 0.75rem 1rem;
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s ease;
-}
-
-.filter-tab:hover {
-  color: var(--text-primary);
-}
-
-.filter-tab.active {
-  color: var(--primary-color);
-  border-bottom-color: var(--primary-color);
+  padding-bottom: 1rem;
 }
 
 .plugins-grid {
@@ -641,43 +553,43 @@ export default {
   .plugins-view {
     padding: 1rem;
   }
-  
+
   .page-header {
     flex-direction: column;
     gap: 1rem;
   }
-  
+
   .header-actions {
     width: 100%;
     justify-content: stretch;
   }
-  
+
   .btn {
     flex: 1;
   }
-  
+
   .plugins-stats {
     grid-template-columns: repeat(3, 1fr);
   }
-  
+
   .stat-card {
     padding: 1rem;
   }
-  
+
   .stat-number {
     font-size: 1.5rem;
   }
-  
+
   .filter-tabs {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   .filter-tab {
     white-space: nowrap;
     flex-shrink: 0;
   }
-  
+
   .install-methods {
     grid-template-columns: 1fr;
   }

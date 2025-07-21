@@ -26,12 +26,7 @@ pub struct AppState {
     pub db: Arc<DatabaseManager>,
     pub book_manager: Arc<BookManager>,
     pub book_source_manager: Arc<tokio::sync::Mutex<BookSourceManager>>,
-}
-
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+    pub settings: Arc<tokio::sync::RwLock<models::AppSettings>>,
 }
 
 // 图书管理相关命令
@@ -187,10 +182,7 @@ async fn save_reading_progress(
 
 /// 获取阅读进度
 #[tauri::command]
-async fn get_reading_progress(
-    book_id: String,
-    state: State<'_, AppState>,
-) -> Result<f64, String> {
+async fn get_reading_progress(book_id: String, state: State<'_, AppState>) -> Result<f64, String> {
     state
         .book_manager
         .get_reading_progress(&book_id)
@@ -229,10 +221,7 @@ async fn get_bookmarks(
 
 /// 删除书签
 #[tauri::command]
-async fn delete_bookmark(
-    bookmark_id: i64,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+async fn delete_bookmark(bookmark_id: i64, state: State<'_, AppState>) -> Result<(), String> {
     state
         .book_manager
         .delete_bookmark(bookmark_id)
@@ -398,6 +387,24 @@ async fn get_plugin_code(source_id: String, state: State<'_, AppState>) -> Resul
         .map(|code| code.clone())
 }
 
+/// 获取应用设置
+#[tauri::command]
+async fn get_settings(state: State<'_, AppState>) -> Result<models::AppSettings, String> {
+    let settings = state.settings.read().await;
+    Ok(settings.clone())
+}
+
+/// 保存应用设置
+#[tauri::command]
+async fn save_settings(
+    settings: models::AppSettings,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let mut current_settings = state.settings.write().await;
+    *current_settings = settings;
+    Ok(())
+}
+
 // 在线搜索和下载功能命令
 
 /// 在线搜索图书
@@ -407,38 +414,38 @@ async fn search_online_books(
     state: State<'_, AppState>,
 ) -> Result<Vec<models::SearchResult>, String> {
     let manager = state.book_source_manager.lock().await;
-    
+
     // 获取所有启用的书源
     let sources = manager.get_sources().await.map_err(|e| e.to_string())?;
     let enabled_sources: Vec<_> = sources.into_iter().filter(|s| s.enabled).collect();
-    
+
     if enabled_sources.is_empty() {
         return Ok(Vec::new());
     }
-    
+
     // 并行搜索所有启用的书源
     let mut search_tasks = Vec::new();
-    
+
     for source in enabled_sources {
         let source_id = source.id.clone();
         let query_clone = query.clone();
-        
+
         // 获取插件代码
         if let Some(plugin_code) = manager.get_plugin_code(&source_id) {
             let plugin_code = plugin_code.clone();
-            
+
             // 创建异步任务进行搜索
             let task = tokio::spawn(async move {
                 search_with_plugin(source_id, query_clone, plugin_code).await
             });
-            
+
             search_tasks.push(task);
         }
     }
-    
+
     // 等待所有搜索任务完成并聚合结果
     let mut all_results = Vec::new();
-    
+
     for task in search_tasks {
         match task.await {
             Ok(Ok(mut results)) => {
@@ -453,10 +460,10 @@ async fn search_online_books(
             }
         }
     }
-    
+
     // 去重和排序
     let deduplicated_results = deduplicate_search_results(all_results);
-    
+
     Ok(deduplicated_results)
 }
 
@@ -468,13 +475,13 @@ async fn get_online_chapters(
     state: State<'_, AppState>,
 ) -> Result<Vec<models::ChapterInfo>, String> {
     let manager = state.book_source_manager.lock().await;
-    
+
     // 获取插件代码
     let plugin_code = manager
         .get_plugin_code(&source_id)
         .ok_or_else(|| "插件代码不存在".to_string())?
         .clone();
-    
+
     // 使用插件获取章节列表
     get_chapters_with_plugin(source_id, book_url, plugin_code)
         .await
@@ -490,42 +497,39 @@ async fn download_book(
     state: State<'_, AppState>,
 ) -> Result<String, String> {
     let manager = state.book_source_manager.lock().await;
-    
+
     // 获取插件代码
     let plugin_code = manager
         .get_plugin_code(&source_id)
         .ok_or_else(|| "插件代码不存在".to_string())?
         .clone();
-    
+
     // 首先获取章节列表
-    let all_chapters = get_chapters_with_plugin(source_id.clone(), book_url.clone(), plugin_code.clone())
-        .await
-        .map_err(|e| e.to_string())?;
-    
+    let all_chapters =
+        get_chapters_with_plugin(source_id.clone(), book_url.clone(), plugin_code.clone())
+            .await
+            .map_err(|e| e.to_string())?;
+
     // 过滤要下载的章节
     let chapters_to_download: Vec<_> = chapters
         .into_iter()
         .filter_map(|index| all_chapters.get(index).cloned())
         .collect();
-    
+
     if chapters_to_download.is_empty() {
         return Err("没有找到要下载的章节".to_string());
     }
-    
+
     // 批量下载章节内容
-    let book_content = download_chapters_with_plugin(
-        source_id,
-        chapters_to_download,
-        plugin_code,
-    )
-    .await
-    .map_err(|e| e.to_string())?;
-    
+    let book_content = download_chapters_with_plugin(source_id, chapters_to_download, plugin_code)
+        .await
+        .map_err(|e| e.to_string())?;
+
     // 保存为本地文件并添加到图书库
     let book_id = save_downloaded_book(&book_content, &state.book_manager)
         .await
         .map_err(|e| e.to_string())?;
-    
+
     Ok(book_id)
 }
 
@@ -535,40 +539,26 @@ async fn download_book(
 async fn search_with_plugin(
     source_id: String,
     query: String,
-    plugin_code: String,
+    _plugin_code: String,
 ) -> Result<Vec<models::SearchResult>, String> {
-    // 这里模拟插件执行环境
-    // 在实际实现中，这将通过前端JavaScript执行插件代码
-    // 目前返回模拟结果用于测试
-    
-    // 创建HTTP客户端进行实际搜索
-    use book_source_manager::HttpUtils;
-    let http_utils = HttpUtils::new();
-    
-    // 这里应该执行插件的search方法
-    // 由于我们使用前端执行插件的架构，这里提供一个基础的搜索实现
-    // 实际的插件执行将在前端完成
-    
     // 模拟搜索结果（实际应该通过插件执行）
-    let mock_results = vec![
-        models::SearchResult {
-            title: format!("搜索结果: {}", query),
-            author: Some("测试作者".to_string()),
-            description: Some("这是一个测试搜索结果".to_string()),
-            source_id: source_id.clone(),
-            book_url: format!("https://example.com/book/{}", query),
-            cover_url: None,
-        }
-    ];
-    
+    let mock_results = vec![models::SearchResult {
+        title: format!("搜索结果: {}", query),
+        author: Some("测试作者".to_string()),
+        description: Some("这是一个测试搜索结果".to_string()),
+        source_id,
+        book_url: format!("https://example.com/book/{}", query),
+        cover_url: None,
+    }];
+
     Ok(mock_results)
 }
 
 /// 使用插件获取章节列表
 async fn get_chapters_with_plugin(
-    source_id: String,
+    _source_id: String,
     book_url: String,
-    plugin_code: String,
+    _plugin_code: String,
 ) -> Result<Vec<models::ChapterInfo>, String> {
     // 模拟章节获取（实际应该通过插件执行）
     let mock_chapters = vec![
@@ -583,58 +573,31 @@ async fn get_chapters_with_plugin(
             index: 1,
         },
     ];
-    
+
     Ok(mock_chapters)
 }
 
 /// 使用插件下载章节内容
 async fn download_chapters_with_plugin(
-    source_id: String,
+    _source_id: String,
     chapters: Vec<models::ChapterInfo>,
-    plugin_code: String,
+    _plugin_code: String,
 ) -> Result<DownloadedBook, String> {
-    use book_source_manager::HttpUtils;
-    let http_utils = HttpUtils::new();
-    
     let mut book_content = DownloadedBook {
         title: "下载的图书".to_string(),
         author: Some("未知作者".to_string()),
         chapters: Vec::new(),
     };
-    
-    // 并行下载章节内容
-    let mut download_tasks = Vec::new();
-    
+
+    // 模拟下载章节内容
     for chapter in chapters {
-        let chapter_url = chapter.url.clone();
-        let chapter_title = chapter.title.clone();
-        let http_utils_clone = HttpUtils::new();
-        
-        let task = tokio::spawn(async move {
-            // 模拟章节内容下载
-            let content = format!("这是{}的内容...", chapter_title);
-            
-            ChapterContent {
-                title: chapter_title,
-                content,
-            }
+        let content = format!("这是{}的内容...", chapter.title);
+        book_content.chapters.push(ChapterContent {
+            title: chapter.title,
+            content,
         });
-        
-        download_tasks.push(task);
     }
-    
-    // 等待所有下载任务完成
-    for task in download_tasks {
-        match task.await {
-            Ok(chapter_content) => {
-                book_content.chapters.push(chapter_content);
-            }
-            Err(e) => {
-                eprintln!("章节下载失败: {}", e);
-            }
-        }
-    }
-    
+
     Ok(book_content)
 }
 
@@ -644,84 +607,78 @@ async fn save_downloaded_book(
     book_manager: &BookManager,
 ) -> Result<String, String> {
     use std::io::Write;
-    
+
     // 创建下载目录
     let downloads_dir = std::env::current_dir()
         .map_err(|e| format!("获取当前目录失败: {}", e))?
         .join("data")
         .join("downloads");
-    
+
     if !downloads_dir.exists() {
-        std::fs::create_dir_all(&downloads_dir)
-            .map_err(|e| format!("创建下载目录失败: {}", e))?;
+        std::fs::create_dir_all(&downloads_dir).map_err(|e| format!("创建下载目录失败: {}", e))?;
     }
-    
+
     // 生成文件名
-    let safe_title = book_content.title
+    let safe_title = book_content
+        .title
         .chars()
         .filter(|c| c.is_alphanumeric() || *c == ' ' || *c == '-' || *c == '_')
         .collect::<String>()
         .replace(' ', "_");
-    
+
     let file_path = downloads_dir.join(format!("{}.txt", safe_title));
-    
+
     // 写入文件内容
-    let mut file = std::fs::File::create(&file_path)
-        .map_err(|e| format!("创建文件失败: {}", e))?;
-    
+    let mut file = std::fs::File::create(&file_path).map_err(|e| format!("创建文件失败: {}", e))?;
+
     // 写入标题和作者信息
-    writeln!(file, "书名: {}", book_content.title)
-        .map_err(|e| format!("写入文件失败: {}", e))?;
-    
+    writeln!(file, "书名: {}", book_content.title).map_err(|e| format!("写入文件失败: {}", e))?;
+
     if let Some(author) = &book_content.author {
-        writeln!(file, "作者: {}", author)
-            .map_err(|e| format!("写入文件失败: {}", e))?;
+        writeln!(file, "作者: {}", author).map_err(|e| format!("写入文件失败: {}", e))?;
     }
-    
-    writeln!(file, "\n{}", "=".repeat(50))
-        .map_err(|e| format!("写入文件失败: {}", e))?;
-    
+
+    writeln!(file, "\n{}", "=".repeat(50)).map_err(|e| format!("写入文件失败: {}", e))?;
+
     // 写入章节内容
     for chapter in &book_content.chapters {
-        writeln!(file, "\n{}\n", chapter.title)
-            .map_err(|e| format!("写入文件失败: {}", e))?;
-        writeln!(file, "{}", chapter.content)
-            .map_err(|e| format!("写入文件失败: {}", e))?;
-        writeln!(file, "\n{}", "-".repeat(30))
-            .map_err(|e| format!("写入文件失败: {}", e))?;
+        writeln!(file, "\n{}\n", chapter.title).map_err(|e| format!("写入文件失败: {}", e))?;
+        writeln!(file, "{}", chapter.content).map_err(|e| format!("写入文件失败: {}", e))?;
+        writeln!(file, "\n{}", "-".repeat(30)).map_err(|e| format!("写入文件失败: {}", e))?;
     }
-    
+
     // 导入到图书库
     let book = book_manager
         .import_book(file_path)
         .await
         .map_err(|e| format!("导入图书失败: {}", e))?;
-    
+
     Ok(book.id)
 }
 
 /// 去重搜索结果
 fn deduplicate_search_results(results: Vec<models::SearchResult>) -> Vec<models::SearchResult> {
     use std::collections::HashSet;
-    
+
     let mut seen = HashSet::new();
     let mut deduplicated = Vec::new();
-    
+
     for result in results {
         // 使用书名和作者作为去重键
-        let key = format!("{}_{}", 
+        let key = format!(
+            "{}_{}",
             result.title.to_lowercase().trim(),
             result.author.as_deref().unwrap_or("").to_lowercase().trim()
         );
-        
+
         if seen.insert(key) {
             deduplicated.push(result);
         }
     }
-    
+
     // 按书名排序
     deduplicated.sort_by(|a, b| a.title.cmp(&b.title));
-    
+
     deduplicated
 }
 
@@ -766,18 +723,30 @@ fn initialize_app_state() -> AppResult<AppState> {
         .map_err(|e| crate::errors::AppError::BookSource(e))?;
     let book_source_manager = Arc::new(tokio::sync::Mutex::new(book_source_manager));
 
+    // 初始化应用设置
+    let settings = Arc::new(tokio::sync::RwLock::new(models::AppSettings::default()));
+
     Ok(AppState {
         db,
         book_manager,
         book_source_manager,
+        settings,
     })
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // 创建 Tokio 运行时
+    let runtime = tokio::runtime::Runtime::new().expect("无法创建 Tokio 运行时");
+    let runtime_handle = runtime.handle().clone();
+
+    // 将运行时放入 Arc 中，确保其生命周期足够长
+    let runtime = std::sync::Arc::new(runtime);
+
     tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
-        .setup(|app| {
+        .plugin(tauri_plugin_dialog::init())
+        .setup(move |app| {
+            // 使用 move 关键字获取所有权
             // 初始化应用状态
             let app_state = initialize_app_state().map_err(|e| {
                 eprintln!("Failed to initialize app state: {}", e);
@@ -786,7 +755,9 @@ pub fn run() {
 
             // 初始化书源管理器
             let book_source_manager = app_state.book_source_manager.clone();
-            tokio::spawn(async move {
+
+            // 在 Tokio 运行时中执行异步任务
+            runtime_handle.spawn(async move {
                 if let Err(e) = book_source_manager.lock().await.initialize().await {
                     eprintln!("Failed to initialize book source manager: {}", e);
                 }
@@ -795,10 +766,12 @@ pub fn run() {
             // 将状态添加到应用中
             app.manage(app_state);
 
+            // 将运行时添加到应用中，确保其生命周期与应用相同
+            app.manage(runtime);
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            greet,
             import_book,
             import_folder,
             get_books,
@@ -817,6 +790,7 @@ pub fn run() {
             delete_bookmark,
             get_book_content,
             get_book_chapters,
+
             get_chapter_content,
             get_paginated_content,
             plugin_http_get,
@@ -831,7 +805,9 @@ pub fn run() {
             get_plugin_code,
             search_online_books,
             get_online_chapters,
-            download_book
+            download_book,
+            get_settings,
+            save_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -871,10 +847,10 @@ mod tests {
         ];
 
         let deduplicated = deduplicate_search_results(results);
-        
+
         // 应该去重，只保留2个结果
         assert_eq!(deduplicated.len(), 2);
-        
+
         // 验证结果按标题排序
         assert_eq!(deduplicated[0].title, "另一本小说");
         assert_eq!(deduplicated[1].title, "测试小说");
@@ -886,7 +862,8 @@ mod tests {
             "test_source".to_string(),
             "测试查询".to_string(),
             "mock_plugin_code".to_string(),
-        ).await;
+        )
+        .await;
 
         assert!(result.is_ok());
         let search_results = result.unwrap();
@@ -900,7 +877,8 @@ mod tests {
             "test_source".to_string(),
             "https://example.com/book/test".to_string(),
             "mock_plugin_code".to_string(),
-        ).await;
+        )
+        .await;
 
         assert!(result.is_ok());
         let chapters = result.unwrap();

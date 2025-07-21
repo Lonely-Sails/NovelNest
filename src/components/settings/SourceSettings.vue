@@ -15,14 +15,10 @@
             <span class="label-text">启用书源功能</span>
             <span class="label-desc">开启在线搜索和下载功能</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.enabled"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.enabled"
+            @change="updateSettings"
+          />
         </div>
         
         <div class="setting-item">
@@ -30,14 +26,10 @@
             <span class="label-text">自动更新书源</span>
             <span class="label-desc">定期检查并更新书源插件</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.autoUpdate"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.autoUpdate"
+            @change="updateSettings"
+          />
         </div>
         
         <div class="setting-item" v-if="localSettings.autoUpdate">
@@ -105,14 +97,10 @@
             <span class="label-text">搜索结果去重</span>
             <span class="label-desc">自动去除重复的搜索结果</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.deduplicateResults"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.deduplicateResults"
+            @change="updateSettings"
+          />
         </div>
         
         <div class="setting-item">
@@ -200,14 +188,10 @@
             <span class="label-text">自动导入下载</span>
             <span class="label-desc">下载完成后自动导入到图书库</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.autoImport"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.autoImport"
+            @change="updateSettings"
+          />
         </div>
       </div>
       
@@ -239,13 +223,11 @@
             <span class="label-text">自定义User-Agent</span>
             <span class="label-desc">输入自定义的User-Agent字符串</span>
           </label>
-          <input 
-            type="text" 
+          <BaseInput
             v-model="localSettings.customUserAgent" 
-            class="setting-input"
             placeholder="输入User-Agent..."
             @input="updateSettings"
-          >
+          />
         </div>
         
         <div class="setting-item">
@@ -253,14 +235,10 @@
             <span class="label-text">启用代理</span>
             <span class="label-desc">通过代理服务器访问书源</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.useProxy"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.useProxy"
+            @change="updateSettings"
+          />
         </div>
         
         <div v-if="localSettings.useProxy" class="proxy-settings">
@@ -285,13 +263,11 @@
               <span class="label-text">代理地址</span>
               <span class="label-desc">代理服务器的IP地址或域名</span>
             </label>
-            <input 
-              type="text" 
+            <BaseInput
               v-model="localSettings.proxyHost" 
-              class="setting-input"
               placeholder="127.0.0.1"
               @input="updateSettings"
-            >
+            />
           </div>
           
           <div class="setting-item">
@@ -299,15 +275,14 @@
               <span class="label-text">代理端口</span>
               <span class="label-desc">代理服务器的端口号</span>
             </label>
-            <input 
-              type="number" 
+            <BaseInput
               v-model.number="localSettings.proxyPort" 
-              class="setting-input"
+              type="number"
               placeholder="8080"
-              min="1"
-              max="65535"
+              :min="1"
+              :max="65535"
               @input="updateSettings"
-            >
+            />
           </div>
         </div>
       </div>
@@ -321,14 +296,10 @@
             <span class="label-text">启用搜索缓存</span>
             <span class="label-desc">缓存搜索结果以提高响应速度</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.enableCache"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.enableCache"
+            @change="updateSettings"
+          />
         </div>
         
         <div class="setting-item" v-if="localSettings.enableCache">
@@ -371,10 +342,12 @@
         
         <div class="setting-item">
           <div class="cache-actions">
-            <button class="btn-secondary" @click="clearCache">
+            <BaseButton @click="clearCache" variant="secondary">
               清空缓存
-            </button>
-            <span class="cache-info">当前缓存: {{ cacheSize }}MB</span>
+            </BaseButton>
+            <BaseBadge variant="info" size="small">
+              当前缓存: {{ cacheSize }}MB
+            </BaseBadge>
           </div>
         </div>
       </div>
@@ -382,12 +355,12 @@
     
     <!-- 操作按钮 -->
     <div class="settings-actions">
-      <button class="btn-secondary" @click="resetToDefaults">
+      <BaseButton @click="resetToDefaults" variant="secondary">
         恢复默认设置
-      </button>
-      <button class="btn-primary" @click="saveSettings" :disabled="saving">
-        {{ saving ? '保存中...' : '保存设置' }}
-      </button>
+      </BaseButton>
+      <BaseButton @click="saveSettings" variant="primary" :loading="saving">
+        保存设置
+      </BaseButton>
     </div>
   </div>
 </template>

@@ -731,10 +731,17 @@ impl BookManager {
             .ok_or_else(|| BookError::ChapterParseError(format!("章节不存在: {}", chapter_index)))?;
 
         let full_content = self.get_book_content(book_id).await?;
-        let chapter_content = if chapter.end_position <= full_content.len() {
-            full_content[chapter.start_position..chapter.end_position].to_string()
+        
+        // 使用字符索引而不是字节索引来避免UTF-8边界问题
+        let chars: Vec<char> = full_content.chars().collect();
+        let total_chars = chars.len();
+        
+        let chapter_content = if chapter.end_position <= total_chars {
+            chars[chapter.start_position..chapter.end_position].iter().collect()
+        } else if chapter.start_position < total_chars {
+            chars[chapter.start_position..].iter().collect()
         } else {
-            full_content[chapter.start_position..].to_string()
+            String::new()
         };
 
         // 计算预估阅读时间（假设每分钟阅读300字）
@@ -783,5 +790,112 @@ impl BookManager {
             has_next_page: page_number + 1 < total_pages,
             has_previous_page: page_number > 0,
         })
+    }
+
+    // 以下是为集成测试添加的测试方法
+
+    /// 测试用：导入图书
+    #[cfg(test)]
+    pub async fn test_import_book(file_path: PathBuf) -> BookResult<Book> {
+        use crate::database::DatabaseManager;
+        use std::sync::Arc;
+        use tempfile::TempDir;
+
+        // 创建临时目录和数据库
+        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let db_path = temp_dir.path().join("test.db");
+        let db = Arc::new(DatabaseManager::new(&db_path).expect("创建测试数据库失败"));
+        
+        // 创建图书管理器
+        let storage_path = temp_dir.path().join("books");
+        std::fs::create_dir_all(&storage_path).expect("创建图书存储目录失败");
+        let book_manager = BookManager::new(db, storage_path);
+        
+        // 导入图书
+        book_manager.import_book(file_path).await
+    }
+
+    /// 测试用：获取图书章节
+    #[cfg(test)]
+    pub async fn test_get_book_chapters(book_id: &str) -> BookResult<Vec<crate::models::BookChapter>> {
+        use crate::database::DatabaseManager;
+        use std::sync::Arc;
+        use tempfile::TempDir;
+
+        // 创建临时目录和数据库
+        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let db_path = temp_dir.path().join("test.db");
+        let db = Arc::new(DatabaseManager::new(&db_path).expect("创建测试数据库失败"));
+        
+        // 创建图书管理器
+        let storage_path = temp_dir.path().join("books");
+        std::fs::create_dir_all(&storage_path).expect("创建图书存储目录失败");
+        let book_manager = BookManager::new(db, storage_path);
+        
+        // 获取章节
+        book_manager.get_book_chapters(book_id).await
+    }
+
+    /// 测试用：获取章节内容
+    #[cfg(test)]
+    pub async fn test_get_chapter_content(book_id: &str, chapter_index: usize) -> BookResult<crate::models::ChapterContent> {
+        use crate::database::DatabaseManager;
+        use std::sync::Arc;
+        use tempfile::TempDir;
+
+        // 创建临时目录和数据库
+        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let db_path = temp_dir.path().join("test.db");
+        let db = Arc::new(DatabaseManager::new(&db_path).expect("创建测试数据库失败"));
+        
+        // 创建图书管理器
+        let storage_path = temp_dir.path().join("books");
+        std::fs::create_dir_all(&storage_path).expect("创建图书存储目录失败");
+        let book_manager = BookManager::new(db, storage_path);
+        
+        // 获取章节内容
+        book_manager.get_chapter_content(book_id, chapter_index).await
+    }
+
+    /// 测试用：更新阅读进度
+    #[cfg(test)]
+    pub async fn test_update_reading_progress(book_id: &str, progress: f64) -> BookResult<()> {
+        use crate::database::DatabaseManager;
+        use std::sync::Arc;
+        use tempfile::TempDir;
+
+        // 创建临时目录和数据库
+        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let db_path = temp_dir.path().join("test.db");
+        let db = Arc::new(DatabaseManager::new(&db_path).expect("创建测试数据库失败"));
+        
+        // 创建图书管理器
+        let storage_path = temp_dir.path().join("books");
+        std::fs::create_dir_all(&storage_path).expect("创建图书存储目录失败");
+        let book_manager = BookManager::new(db, storage_path);
+        
+        // 更新阅读进度
+        book_manager.update_reading_progress(book_id, progress).await
+    }
+
+    /// 测试用：获取阅读进度
+    #[cfg(test)]
+    pub async fn test_get_reading_progress(book_id: &str) -> BookResult<f64> {
+        use crate::database::DatabaseManager;
+        use std::sync::Arc;
+        use tempfile::TempDir;
+
+        // 创建临时目录和数据库
+        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let db_path = temp_dir.path().join("test.db");
+        let db = Arc::new(DatabaseManager::new(&db_path).expect("创建测试数据库失败"));
+        
+        // 创建图书管理器
+        let storage_path = temp_dir.path().join("books");
+        std::fs::create_dir_all(&storage_path).expect("创建图书存储目录失败");
+        let book_manager = BookManager::new(db, storage_path);
+        
+        // 获取阅读进度
+        book_manager.get_reading_progress(book_id).await
     }
 }

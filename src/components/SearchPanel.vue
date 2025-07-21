@@ -1,49 +1,47 @@
 <template>
-  <div class="search-panel">
-    <div class="panel-header">
+  <BaseCard class="search-panel">
+    <template #header>
       <h3>全文搜索</h3>
-      <button @click="$emit('close')" class="close-btn">×</button>
-    </div>
+      <BaseButton @click="$emit('close')" variant="ghost" size="small" class="close-btn">
+        ×
+      </BaseButton>
+    </template>
     
     <div class="search-content">
       <!-- 搜索输入 -->
       <div class="search-input-section">
         <div class="search-input-wrapper">
-          <input 
+          <BaseInput
             ref="searchInput"
             v-model="searchQuery" 
             @keyup.enter="performSearch"
             @input="onSearchInput"
             placeholder="输入要搜索的内容..."
-            class="search-input"
-          >
-          <button 
+            type="search"
+          />
+          <BaseButton 
             @click="performSearch" 
             :disabled="!searchQuery.trim()"
-            class="search-btn"
-          >
-            🔍
-          </button>
+            variant="primary"
+            size="small"
+            icon="🔍"
+          />
         </div>
         
         <!-- 搜索选项 -->
         <div class="search-options">
-          <label class="option-label">
-            <input 
-              type="checkbox" 
-              v-model="searchOptions.caseSensitive"
-              @change="performSearch"
-            >
-            区分大小写
-          </label>
-          <label class="option-label">
-            <input 
-              type="checkbox" 
-              v-model="searchOptions.wholeWord"
-              @change="performSearch"
-            >
-            全词匹配
-          </label>
+          <BaseSwitch
+            v-model="searchOptions.caseSensitive"
+            @change="performSearch"
+            label="区分大小写"
+            size="small"
+          />
+          <BaseSwitch
+            v-model="searchOptions.wholeWord"
+            @change="performSearch"
+            label="全词匹配"
+            size="small"
+          />
         </div>
       </div>
       
@@ -64,25 +62,27 @@
           <div class="results-header">
             <span class="results-count">找到 {{ searchResults.length }} 个结果</span>
             <div class="navigation-controls">
-              <button 
+              <BaseButton 
                 @click="goToPreviousResult" 
                 :disabled="currentResultIndex <= 0"
-                class="nav-btn"
+                variant="outline"
+                size="small"
                 title="上一个"
               >
                 ↑
-              </button>
+              </BaseButton>
               <span class="current-result">
                 {{ currentResultIndex + 1 }} / {{ searchResults.length }}
               </span>
-              <button 
+              <BaseButton 
                 @click="goToNextResult" 
                 :disabled="currentResultIndex >= searchResults.length - 1"
-                class="nav-btn"
+                variant="outline"
+                size="small"
                 title="下一个"
               >
                 ↓
-              </button>
+              </BaseButton>
             </div>
           </div>
           
@@ -108,7 +108,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </BaseCard>
 </template>
 
 <script>
@@ -116,6 +116,7 @@ import { ref, computed, onMounted, nextTick, watch } from 'vue'
 
 export default {
   name: 'SearchPanel',
+  // 基础组件已全局注册，无需导入
   props: {
     content: {
       type: String,
@@ -301,42 +302,15 @@ export default {
 <style scoped>
 .search-panel {
   width: 320px;
-  background: var(--bg-primary);
   border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   z-index: 50;
-}
-
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.panel-header h3 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 1.1rem;
-  font-weight: 600;
+  height: 100%;
 }
 
 .close-btn {
-  background: none;
-  border: none;
   font-size: 1.5rem;
-  cursor: pointer;
-  color: var(--text-secondary);
-  padding: 0.25rem;
-  border-radius: 4px;
-  transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-  background-color: var(--sidebar-hover);
-  color: var(--text-primary);
 }
 
 .search-content {
@@ -358,59 +332,10 @@ export default {
   margin-bottom: 1rem;
 }
 
-.search-input {
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  font-size: 0.9rem;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--accent-color);
-}
-
-.search-btn {
-  padding: 0.75rem;
-  background: var(--accent-color);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  min-width: 44px;
-}
-
-.search-btn:hover:not(:disabled) {
-  background-color: var(--accent-hover);
-}
-
-.search-btn:disabled {
-  background-color: var(--border-color);
-  cursor: not-allowed;
-}
-
 .search-options {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-}
-
-.option-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.option-label input[type="checkbox"] {
-  accent-color: var(--accent-color);
+  gap: 0.75rem;
 }
 
 /* 搜索结果区域 */
@@ -489,32 +414,7 @@ export default {
   gap: 0.5rem;
 }
 
-.nav-btn {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  color: var(--text-primary);
-  transition: all 0.3s ease;
-}
-
-.nav-btn:hover:not(:disabled) {
-  background-color: var(--accent-color);
-  color: white;
-  border-color: var(--accent-color);
-}
-
-.nav-btn:disabled {
-  background-color: var(--border-color);
-  color: var(--text-muted);
-  cursor: not-allowed;
-}
+/* 导航按钮样式已由BaseButton组件提供 */
 
 .current-result {
   font-size: 0.8rem;

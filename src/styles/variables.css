@@ -1,0 +1,230 @@
+/* 设计令牌 - CSS 变量定义 */
+:root {
+  /* 颜色系统 */
+  --primary-color: #007bff;
+  --primary-hover: #0056b3;
+  --primary-light: #e3f2fd;
+  
+  --secondary-color: #6c757d;
+  --secondary-hover: #545b62;
+  --secondary-light: #f8f9fa;
+  
+  --success-color: #28a745;
+  --success-hover: #1e7e34;
+  --success-bg: #d4edda;
+  --success-light: #f8fff9;
+  
+  --warning-color: #ffc107;
+  --warning-hover: #d39e00;
+  --warning-bg: #fff3cd;
+  --warning-light: #fffdf5;
+  
+  --error-color: #dc3545;
+  --error-hover: #c82333;
+  --error-bg: #f8d7da;
+  --error-light: #fff8f8;
+  
+  --info-color: #17a2b8;
+  --info-hover: #138496;
+  --info-bg: #d1ecf1;
+  --info-light: #f8fbff;
+  
+  /* 文本颜色 */
+  --text-primary: #2c3e50;
+  --text-secondary: #6c757d;
+  --text-muted: #adb5bd;
+  --text-disabled: #dee2e6;
+  
+  /* 背景颜色 */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #e9ecef;
+  
+  /* 边框颜色 */
+  --border-color: #dee2e6;
+  --border-light: #f1f3f4;
+  --border-dark: #adb5bd;
+  
+  /* 阴影 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+  
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 50px;
+  
+  /* 间距 */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 0.75rem;
+  --spacing-lg: 1rem;
+  --spacing-xl: 1.5rem;
+  --spacing-2xl: 2rem;
+  --spacing-3xl: 3rem;
+  
+  /* 字体大小 */
+  --font-xs: 0.75rem;
+  --font-sm: 0.8rem;
+  --font-md: 0.9rem;
+  --font-lg: 1rem;
+  --font-xl: 1.125rem;
+  --font-2xl: 1.25rem;
+  --font-3xl: 1.5rem;
+  
+  /* 字体权重 */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  
+  /* 行高 */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+  
+  /* 过渡动画 */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+  
+  /* Z-index 层级 */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+  --z-toast: 1080;
+}
+
+/* 暗色主题 */
+.theme-dark {
+  --primary-color: #4299e1;
+  --primary-hover: #3182ce;
+  --primary-light: #1a365d;
+  
+  --text-primary: #e2e8f0;
+  --text-secondary: #a0aec0;
+  --text-muted: #718096;
+  --text-disabled: #4a5568;
+  
+  --bg-primary: #1a202c;
+  --bg-secondary: #2d3748;
+  --bg-tertiary: #4a5568;
+  
+  --border-color: #4a5568;
+  --border-light: #2d3748;
+  --border-dark: #718096;
+  
+  --success-bg: #1a2e1a;
+  --success-light: #0f1a0f;
+  
+  --warning-bg: #2e2a1a;
+  --warning-light: #1a1a0f;
+  
+  --error-bg: #2e1a1a;
+  --error-light: #1a0f0f;
+  
+  --info-bg: #1a1e2e;
+  --info-light: #0f0f1a;
+}
+
+/* 紧凑模式 */
+.compact-mode {
+  --spacing-xs: 0.125rem;
+  --spacing-sm: 0.25rem;
+  --spacing-md: 0.5rem;
+  --spacing-lg: 0.75rem;
+  --spacing-xl: 1rem;
+  --spacing-2xl: 1.25rem;
+  --spacing-3xl: 1.5rem;
+  
+  --font-xs: 0.7rem;
+  --font-sm: 0.75rem;
+  --font-md: 0.8rem;
+  --font-lg: 0.9rem;
+  --font-xl: 1rem;
+  --font-2xl: 1.125rem;
+  --font-3xl: 1.25rem;
+}
+
+/* 高对比度模式 */
+.high-contrast {
+  --text-primary: #000000;
+  --text-secondary: #333333;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f0f0f0;
+  --border-color: #666666;
+  --primary-color: #0066cc;
+  --success-color: #006600;
+  --warning-color: #cc6600;
+  --error-color: #cc0000;
+}
+
+/* 动画偏好设置 */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0s;
+    --transition-normal: 0s;
+    --transition-slow: 0s;
+  }
+  
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 响应式断点辅助类 */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 var(--spacing-md);
+  }
+}
+
+/* 通用工具类 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

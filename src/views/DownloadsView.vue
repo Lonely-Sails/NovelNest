@@ -1,11 +1,19 @@
 <template>
   <div class="downloads-view">
     <div class="page-header">
-      <h1>在线下载</h1>
-      <p class="page-description">搜索并下载在线小说资源</p>
+      <div class="header-content">
+        <h1>在线下载</h1>
+        <p class="page-description">搜索并下载在线小说资源</p>
+      </div>
+      
+      <div class="header-actions" v-if="selectedBook">
+        <BaseButton @click="handleBack" variant="secondary" icon="←">
+          返回搜索
+        </BaseButton>
+      </div>
     </div>
     
-    <div class="downloads-content">
+    <BaseCard class="downloads-content">
       <!-- 在线搜索组件 -->
       <OnlineSearch
         v-if="!selectedBook"
@@ -19,7 +27,7 @@
         @back="handleBack"
         @book-downloaded="handleBookDownloaded"
       />
-    </div>
+    </BaseCard>
   </div>
 </template>
 
@@ -69,10 +77,14 @@ export default {
 }
 
 .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 2rem;
+  gap: 2rem;
 }
 
-.page-header h1 {
+.header-content h1 {
   color: var(--text-primary);
   font-size: 1.8rem;
   font-weight: 600;
@@ -84,11 +96,31 @@ export default {
   font-size: 0.9rem;
 }
 
+.header-actions {
+  display: flex;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .header-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  
+  .header-actions > * {
+    flex: 1;
+  }
+}
+
 .downloads-content {
-  background: var(--bg-primary);
-  border-radius: 8px;
   padding: 3rem;
-  border: 1px solid var(--border-color);
 }
 
 .empty-state {

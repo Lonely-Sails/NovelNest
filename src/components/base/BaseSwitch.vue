@@ -1,0 +1,263 @@
+<template>
+  <div class="base-switch-wrapper">
+    <label 
+      :class="[
+        'switch-container',
+        `switch-${size}`,
+        {
+          'switch-disabled': disabled,
+          'switch-checked': modelValue
+        }
+      ]"
+    >
+      <input
+        type="checkbox"
+        :checked="modelValue"
+        :disabled="disabled"
+        @change="handleChange"
+        class="switch-input"
+      />
+      <span class="switch-slider">
+        <span class="switch-thumb">
+          <span v-if="showIcon" class="switch-icon">
+            {{ modelValue ? checkedIcon : uncheckedIcon }}
+          </span>
+        </span>
+      </span>
+    </label>
+    
+    <!-- 标签文本 -->
+    <div v-if="$slots.default || label" class="switch-label">
+      <slot>
+        <div class="label-content">
+          <span class="label-text">{{ label }}</span>
+          <span v-if="description" class="label-description">{{ description }}</span>
+        </div>
+      </slot>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'BaseSwitch',
+  props: {
+    // v-model 绑定值
+    modelValue: {
+      type: Boolean,
+      default: false
+    },
+    // 标签文本
+    label: {
+      type: String,
+      default: ''
+    },
+    // 描述文本
+    description: {
+      type: String,
+      default: ''
+    },
+    // 开关大小：small, medium, large
+    size: {
+      type: String,
+      default: 'medium',
+      validator: (value) => ['small', 'medium', 'large'].includes(value)
+    },
+    // 是否禁用
+    disabled: {
+      type: Boolean,
+      default: false
+    },
+    // 是否显示图标
+    showIcon: {
+      type: Boolean,
+      default: false
+    },
+    // 选中状态图标
+    checkedIcon: {
+      type: String,
+      default: '✓'
+    },
+    // 未选中状态图标
+    uncheckedIcon: {
+      type: String,
+      default: '✕'
+    }
+  },
+  emits: ['update:modelValue', 'change'],
+  setup(props, { emit }) {
+    const handleChange = (event) => {
+      const checked = event.target.checked
+      emit('update:modelValue', checked)
+      emit('change', checked)
+    }
+
+    return {
+      handleChange
+    }
+  }
+}
+</script>
+
+<style scoped>
+.base-switch-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.switch-container {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.switch-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.switch-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: relative;
+  display: block;
+  background-color: var(--border-color);
+  border-radius: 50px;
+  transition: all 0.3s ease;
+}
+
+.switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background-color: white;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.switch-icon {
+  font-size: 0.7em;
+  color: var(--text-secondary);
+  font-weight: bold;
+}
+
+/* 开关大小 */
+.switch-small .switch-slider {
+  width: 36px;
+  height: 20px;
+}
+
+.switch-small .switch-thumb {
+  width: 16px;
+  height: 16px;
+  font-size: 0.7rem;
+}
+
+.switch-medium .switch-slider {
+  width: 44px;
+  height: 24px;
+}
+
+.switch-medium .switch-thumb {
+  width: 20px;
+  height: 20px;
+  font-size: 0.8rem;
+}
+
+.switch-large .switch-slider {
+  width: 52px;
+  height: 28px;
+}
+
+.switch-large .switch-thumb {
+  width: 24px;
+  height: 24px;
+  font-size: 0.9rem;
+}
+
+/* 选中状态 */
+.switch-checked .switch-slider {
+  background-color: var(--primary-color);
+}
+
+.switch-small.switch-checked .switch-thumb {
+  transform: translateX(16px);
+}
+
+.switch-medium.switch-checked .switch-thumb {
+  transform: translateX(20px);
+}
+
+.switch-large.switch-checked .switch-thumb {
+  transform: translateX(24px);
+}
+
+.switch-checked .switch-icon {
+  color: var(--primary-color);
+}
+
+/* 悬停效果 */
+.switch-container:hover:not(.switch-disabled) .switch-slider {
+  box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.1);
+}
+
+.switch-container:hover:not(.switch-disabled) .switch-thumb {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 焦点状态 */
+.switch-input:focus + .switch-slider {
+  box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.2);
+}
+
+/* 标签样式 */
+.switch-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.label-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.label-text {
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.label-description {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.3;
+  margin-top: 0.25rem;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .base-switch-wrapper {
+    gap: 0.5rem;
+  }
+  
+  .label-text {
+    font-size: 0.85rem;
+  }
+  
+  .label-description {
+    font-size: 0.75rem;
+  }
+}
+</style>

@@ -2,49 +2,42 @@
   <div class="library">
     <!-- 页面头部 -->
     <div class="page-header">
-      <h1>图书库</h1>
-      <p class="page-description">管理您的电子书收藏</p>
+      <div class="header-content">
+        <h1>图书库</h1>
+        <p class="page-description">管理您的电子书收藏</p>
+      </div>
+      
+      <div class="header-actions">
+        <BaseButton @click="importBook" variant="primary" :loading="loading" icon="📖">
+          导入图书
+        </BaseButton>
+        <BaseButton @click="importFolder" variant="secondary" :loading="loading" icon="📁">
+          导入文件夹
+        </BaseButton>
+      </div>
     </div>
 
     <!-- 统计信息 -->
     <div class="stats-section" v-if="stats.totalBooks > 0">
-      <div class="stat-card">
+      <BaseCard class="stat-card" compact>
         <h3>{{ stats.totalBooks }}</h3>
         <p>总图书数</p>
-      </div>
-      <div class="stat-card">
+      </BaseCard>
+      <BaseCard class="stat-card" compact>
         <h3>{{ stats.readingBooks }}</h3>
         <p>正在阅读</p>
-      </div>
-      <div class="stat-card">
+      </BaseCard>
+      <BaseCard class="stat-card" compact>
         <h3>{{ stats.completedBooks }}</h3>
         <p>已完成</p>
-      </div>
-    </div>
-
-    <!-- 快速操作 -->
-    <div class="quick-actions">
-      <button @click="importBook" class="btn btn-primary" :disabled="loading">
-        <span class="icon">📖</span>
-        导入图书
-      </button>
-      <button @click="importFolder" class="btn btn-secondary" :disabled="loading">
-        <span class="icon">📁</span>
-        导入文件夹
-      </button>
+      </BaseCard>
     </div>
 
     <!-- 搜索和过滤区域 -->
-    <div class="controls-section">
-      <SearchBar
-        v-model="searchQuery"
-        @search="handleSearch"
-        @clear="handleClearSearch"
-        placeholder="搜索图书标题、作者..."
-        :loading="searchLoading"
-        class="search-bar"
-      />
-      
+    <BaseCard class="controls-section">
+      <BaseInput v-model="searchQuery" type="search" placeholder="搜索图书标题、作者..." :loading="searchLoading" clearable
+        @clear="handleClearSearch" class="search-input" />
+
       <div class="filter-controls">
         <!-- 格式过滤 -->
         <div class="filter-group">
@@ -56,7 +49,7 @@
             <option value="pdf">PDF</option>
           </select>
         </div>
-        
+
         <!-- 阅读状态过滤 -->
         <div class="filter-group">
           <label class="filter-label">状态:</label>
@@ -67,7 +60,7 @@
             <option value="completed">已读</option>
           </select>
         </div>
-        
+
         <!-- 排序 -->
         <div class="filter-group">
           <label class="filter-label">排序:</label>
@@ -79,81 +72,58 @@
             <option value="progress">阅读进度</option>
           </select>
         </div>
-        
+
         <!-- 视图切换 -->
         <div class="view-toggle">
-          <button 
-            @click="viewMode = 'grid'" 
-            :class="{ active: viewMode === 'grid' }"
-            class="view-btn"
-            title="网格视图"
-          >
+          <BaseButton @click="viewMode = 'grid'" :variant="viewMode === 'grid' ? 'primary' : 'outline'" size="small">
             网格
-          </button>
-          <button 
-            @click="viewMode = 'list'" 
-            :class="{ active: viewMode === 'list' }"
-            class="view-btn"
-            title="列表视图"
-          >
+          </BaseButton>
+          <BaseButton @click="viewMode = 'list'" :variant="viewMode === 'list' ? 'primary' : 'outline'" size="small">
             列表
-          </button>
+          </BaseButton>
         </div>
       </div>
-    </div>
+    </BaseCard>
 
     <!-- 图书列表区域 -->
     <div class="books-container">
       <!-- 加载状态 -->
       <Loading v-if="loading" message="加载图书中..." />
-      
+
       <!-- 空状态 -->
-      <div v-else-if="displayBooks.length === 0 && !searchQuery" class="empty-state">
+      <BaseCard v-else-if="displayBooks.length === 0 && !searchQuery" class="empty-state">
         <div class="empty-icon">📚</div>
         <h3>还没有图书</h3>
         <p>点击上方按钮开始导入您的第一本图书</p>
-        <div class="empty-actions">
-          <button @click="importBook" class="btn btn-primary">
-            <span class="icon">📖</span>
+        <template #actions>
+          <BaseButton @click="importBook" variant="primary" icon="📖">
             导入图书
-          </button>
-        </div>
-      </div>
-      
+          </BaseButton>
+        </template>
+      </BaseCard>
+
       <!-- 搜索无结果 -->
-      <div v-else-if="displayBooks.length === 0 && searchQuery" class="empty-state">
+      <BaseCard v-else-if="displayBooks.length === 0 && searchQuery" class="empty-state">
         <div class="empty-icon">🔍</div>
         <h3>没有找到相关图书</h3>
         <p>尝试使用不同的关键词搜索</p>
-        <button @click="handleClearSearch" class="btn btn-secondary">
-          清除搜索
-        </button>
-      </div>
+        <template #actions>
+          <BaseButton @click="handleClearSearch" variant="secondary">
+            清除搜索
+          </BaseButton>
+        </template>
+      </BaseCard>
 
       <!-- 图书网格/列表 -->
       <div v-else :class="['books-grid', `books-${viewMode}`]">
-        <BookCard
-          v-for="book in displayBooks"
-          :key="book.id"
-          :book="book"
-          :compact="viewMode === 'list'"
-          :actions="['read', 'edit', 'delete']"
-          @click="openBook"
-          @read="openBook"
-          @edit="editBook"
-          @delete="confirmDeleteBook"
-          class="book-card-item"
-        />
+        <BookCard v-for="book in displayBooks" :key="book.id" :book="book" :compact="viewMode === 'list'"
+          :actions="['read', 'edit', 'delete']" @click="openBook" @read="openBook" @edit="editBook"
+          @delete="confirmDeleteBook" class="book-card-item" />
       </div>
     </div>
 
     <!-- 图书详情模态框 -->
-    <Modal
-      v-if="showBookDetail"
-      @close="closeBookDetail"
-      title="图书详情"
-      size="large"
-    >
+    <Modal v-if="showBookDetail" @close="closeBookDetail" title="图书详情" size="large">
       <div class="book-detail-content">
         <div class="book-detail-header">
           <div class="book-cover-large">
@@ -195,40 +165,25 @@
             </div>
             <div class="progress-section">
               <div class="progress-bar-large">
-                <div 
-                  class="progress-fill" 
-                  :style="{ width: (selectedBook?.reading_progress || 0) * 100 + '%' }"
-                ></div>
+                <div class="progress-fill" :style="{ width: (selectedBook?.reading_progress || 0) * 100 + '%' }"></div>
               </div>
               <div class="progress-actions">
-                <button 
-                  @click="resetProgress" 
-                  class="btn-link"
-                  v-if="selectedBook?.reading_progress > 0"
-                >
+                <button @click="resetProgress" class="btn-link" v-if="selectedBook?.reading_progress > 0">
                   重置进度
                 </button>
-                <button 
-                  @click="markAsCompleted" 
-                  class="btn-link"
-                  v-if="selectedBook?.reading_progress < 1"
-                >
+                <button @click="markAsCompleted" class="btn-link" v-if="selectedBook?.reading_progress < 1">
                   标记为已读
                 </button>
               </div>
             </div>
           </div>
         </div>
-        
+
         <!-- 阅读历史 -->
         <div class="reading-history" v-if="readingHistory.length > 0">
           <h3>阅读历史</h3>
           <div class="history-list">
-            <div 
-              v-for="record in readingHistory" 
-              :key="record.id"
-              class="history-item"
-            >
+            <div v-for="record in readingHistory" :key="record.id" class="history-item">
               <div class="history-date">{{ formatDate(record.read_at) }}</div>
               <div class="history-duration" v-if="record.duration">
                 阅读时长: {{ formatDuration(record.duration) }}
@@ -236,16 +191,12 @@
             </div>
           </div>
         </div>
-        
+
         <!-- 书签列表 -->
         <div class="bookmarks-section" v-if="bookmarks.length > 0">
           <h3>书签</h3>
           <div class="bookmarks-list">
-            <div 
-              v-for="bookmark in bookmarks" 
-              :key="bookmark.id"
-              class="bookmark-item"
-            >
+            <div v-for="bookmark in bookmarks" :key="bookmark.id" class="bookmark-item">
               <div class="bookmark-info">
                 <div class="bookmark-note">{{ bookmark.note || '无备注' }}</div>
                 <div class="bookmark-meta">
@@ -254,119 +205,79 @@
                   <span>{{ formatDate(bookmark.created_at) }}</span>
                 </div>
               </div>
-              <button 
-                @click="deleteBookmark(bookmark.id)" 
-                class="bookmark-delete"
-                title="删除书签"
-              >
+              <button @click="deleteBookmark(bookmark.id)" class="bookmark-delete" title="删除书签">
                 🗑️
               </button>
             </div>
           </div>
         </div>
-        
+
         <div class="book-detail-actions">
-          <button @click="openBook(selectedBook)" class="btn btn-primary">
-            <span class="icon">📖</span>
+          <BaseButton @click="openBook(selectedBook)" variant="primary" icon="📖">
             {{ selectedBook?.reading_progress > 0 ? '继续阅读' : '开始阅读' }}
-          </button>
-          <button @click="showEditModal" class="btn btn-secondary">
-            <span class="icon">✏️</span>
+          </BaseButton>
+          <BaseButton @click="showEditModal" variant="secondary" icon="✏️">
             编辑信息
-          </button>
-          <button @click="confirmDeleteBook(selectedBook)" class="btn btn-danger">
-            <span class="icon">🗑️</span>
+          </BaseButton>
+          <BaseButton @click="confirmDeleteBook(selectedBook)" variant="danger" icon="🗑️">
             删除图书
-          </button>
+          </BaseButton>
         </div>
       </div>
     </Modal>
 
     <!-- 图书编辑模态框 -->
-    <Modal
-      v-if="showEditBook"
-      @close="closeEditModal"
-      title="编辑图书信息"
-      size="medium"
-    >
+    <Modal v-if="showEditBook" @close="closeEditModal" title="编辑图书信息" size="medium">
       <div class="book-edit-content">
         <form @submit.prevent="saveBookEdit" class="edit-form">
           <div class="form-group">
             <label for="edit-title" class="form-label">书名 *</label>
-            <input
-              id="edit-title"
-              v-model="editForm.title"
-              type="text"
-              class="form-input"
-              required
-              placeholder="请输入书名"
-            />
+            <input id="edit-title" v-model="editForm.title" type="text" class="form-input" required
+              placeholder="请输入书名" />
           </div>
-          
+
           <div class="form-group">
             <label for="edit-author" class="form-label">作者</label>
-            <input
-              id="edit-author"
-              v-model="editForm.author"
-              type="text"
-              class="form-input"
-              placeholder="请输入作者名"
-            />
+            <input id="edit-author" v-model="editForm.author" type="text" class="form-input" placeholder="请输入作者名" />
           </div>
-          
+
           <div class="form-group">
             <label for="edit-progress" class="form-label">阅读进度</label>
             <div class="progress-input-group">
-              <input
-                id="edit-progress"
-                v-model.number="editForm.progress"
-                type="range"
-                min="0"
-                max="100"
-                class="progress-slider"
-              />
+              <input id="edit-progress" v-model.number="editForm.progress" type="range" min="0" max="100"
+                class="progress-slider" />
               <span class="progress-value">{{ editForm.progress }}%</span>
             </div>
           </div>
-          
+
           <div class="form-actions">
-            <button type="button" @click="closeEditModal" class="btn btn-secondary">
+            <BaseButton type="button" @click="closeEditModal" variant="secondary">
               取消
-            </button>
-            <button type="submit" class="btn btn-primary" :disabled="saving">
-              {{ saving ? '保存中...' : '保存' }}
-            </button>
+            </BaseButton>
+            <BaseButton type="submit" variant="primary" :loading="saving">
+              保存
+            </BaseButton>
           </div>
         </form>
       </div>
     </Modal>
 
     <!-- 删除确认对话框 -->
-    <Modal
-      v-if="showDeleteConfirm"
-      @close="cancelDelete"
-      title="确认删除"
-      size="small"
-    >
+    <Modal v-if="showDeleteConfirm" @close="cancelDelete" title="确认删除" size="small">
       <div class="delete-confirm-content">
         <p>确定要删除《{{ bookToDelete?.title }}》吗？</p>
         <p class="delete-warning">此操作不可撤销，图书文件将被永久删除。</p>
         <div class="delete-actions">
-          <button @click="cancelDelete" class="btn btn-secondary">取消</button>
-          <button @click="executeDelete" class="btn btn-danger" :disabled="deleting">
-            {{ deleting ? '删除中...' : '确认删除' }}
-          </button>
+          <BaseButton @click="cancelDelete" variant="secondary">取消</BaseButton>
+          <BaseButton @click="executeDelete" variant="danger" :loading="deleting">
+            确认删除
+          </BaseButton>
         </div>
       </div>
     </Modal>
 
     <!-- Toast 提示 -->
-    <Toast
-      v-if="toast.show"
-      :message="toast.message"
-      :type="toast.type"
-      @close="hideToast"
-    />
+    <Toast v-if="toast.show" :message="toast.message" :type="toast.type" @close="hideToast" />
   </div>
 </template>
 
@@ -375,11 +286,13 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBookStore } from '@/stores/bookStore'
 import { invoke } from '@tauri-apps/api/core'
+import { open, save } from '@tauri-apps/plugin-dialog'
 import BookCard from '@/components/BookCard.vue'
 import SearchBar from '@/components/SearchBar.vue'
 import Modal from '@/components/Modal.vue'
 import Loading from '@/components/Loading.vue'
 import Toast from '@/components/Toast.vue'
+// 基础组件已全局注册，无需导入
 
 export default {
   name: 'LibraryView',
@@ -402,7 +315,7 @@ export default {
     const selectedStatus = ref('')
     const sortBy = ref('title')
     const sortOrder = ref('asc')
-    
+
     // 模态框状态
     const showBookDetail = ref(false)
     const selectedBook = ref(null)
@@ -411,18 +324,18 @@ export default {
     const deleting = ref(false)
     const showEditBook = ref(false)
     const saving = ref(false)
-    
+
     // 图书详情相关数据
     const readingHistory = ref([])
     const bookmarks = ref([])
-    
+
     // 编辑表单
     const editForm = ref({
       title: '',
       author: '',
       progress: 0
     })
-    
+
     // Toast 状态
     const toast = ref({
       show: false,
@@ -442,7 +355,7 @@ export default {
       // 应用搜索过滤
       if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase()
-        filtered = filtered.filter(book => 
+        filtered = filtered.filter(book =>
           book.title.toLowerCase().includes(query) ||
           (book.author && book.author.toLowerCase().includes(query))
         )
@@ -450,7 +363,7 @@ export default {
 
       // 应用格式过滤
       if (selectedFormat.value) {
-        filtered = filtered.filter(book => 
+        filtered = filtered.filter(book =>
           book.format.toLowerCase() === selectedFormat.value.toLowerCase()
         )
       }
@@ -473,7 +386,7 @@ export default {
       // 应用排序
       filtered.sort((a, b) => {
         let aValue, bValue
-        
+
         switch (sortBy.value) {
           case 'title':
             aValue = a.title.toLowerCase()
@@ -546,21 +459,20 @@ export default {
 
     const importBook = async () => {
       try {
-        // 使用文件输入来模拟文件选择（在实际应用中应该使用 Tauri 的文件对话框）
-        const input = document.createElement('input')
-        input.type = 'file'
-        input.accept = '.txt,.epub,.pdf'
-        input.onchange = async (e) => {
-          const file = e.target.files[0]
-          if (file) {
-            // 在实际应用中，这里应该获取文件路径并调用 Tauri 命令
-            // 目前使用模拟数据
-            const mockFilePath = `/path/to/${file.name}`
-            await bookStore.importBook(mockFilePath)
-            showToast('图书导入成功', 'success')
-          }
+        // 使用 Tauri 的文件对话框 API 选择文件
+        const filePath = await open({
+          multiple: false,
+          filters: [{
+            name: '电子书文件',
+            extensions: ['txt', 'epub', 'pdf']
+          }]
+        })
+
+        // 如果用户取消了选择，filePath 会是 null
+        if (filePath) {
+          await bookStore.importBook(filePath)
+          showToast('图书导入成功', 'success')
         }
-        input.click()
       } catch (error) {
         console.error('导入图书失败:', error)
         showToast('导入图书失败: ' + error.message, 'error')
@@ -569,20 +481,17 @@ export default {
 
     const importFolder = async () => {
       try {
-        // 使用文件夹输入来模拟文件夹选择
-        const input = document.createElement('input')
-        input.type = 'file'
-        input.webkitdirectory = true
-        input.onchange = async (e) => {
-          const files = Array.from(e.target.files)
-          if (files.length > 0) {
-            // 在实际应用中，这里应该获取文件夹路径并调用 Tauri 命令
-            const mockFolderPath = '/path/to/folder'
-            const importedBooks = await bookStore.importFolder(mockFolderPath)
-            showToast(`成功导入 ${importedBooks.length} 本图书`, 'success')
-          }
+        // 使用 Tauri 的文件对话框 API 选择文件夹
+        const folderPath = await open({
+          directory: true,
+          multiple: false
+        })
+
+        // 如果用户取消了选择，folderPath 会是 null
+        if (folderPath) {
+          const importedBooks = await bookStore.importFolder(folderPath)
+          showToast(`成功导入 ${importedBooks.length} 本图书`, 'success')
         }
-        input.click()
       } catch (error) {
         console.error('导入文件夹失败:', error)
         showToast('导入文件夹失败: ' + error.message, 'error')
@@ -596,7 +505,7 @@ export default {
     const editBook = async (book) => {
       selectedBook.value = book
       showBookDetail.value = true
-      
+
       // 加载图书详情数据
       await loadBookDetails(book.id)
     }
@@ -607,7 +516,7 @@ export default {
       readingHistory.value = []
       bookmarks.value = []
     }
-    
+
     const loadBookDetails = async (bookId) => {
       try {
         // 加载阅读历史（模拟数据，实际应该调用 Tauri 命令）
@@ -623,7 +532,7 @@ export default {
             duration: 2400 // 40分钟
           }
         ]
-        
+
         // 加载书签
         bookmarks.value = await invoke('get_bookmarks', { bookId })
       } catch (error) {
@@ -633,19 +542,19 @@ export default {
         bookmarks.value = []
       }
     }
-    
+
     const showEditModal = () => {
       if (!selectedBook.value) return
-      
+
       editForm.value = {
         title: selectedBook.value.title,
         author: selectedBook.value.author || '',
         progress: Math.round((selectedBook.value.reading_progress || 0) * 100)
       }
-      
+
       showEditBook.value = true
     }
-    
+
     const closeEditModal = () => {
       showEditBook.value = false
       editForm.value = {
@@ -654,10 +563,10 @@ export default {
         progress: 0
       }
     }
-    
+
     const saveBookEdit = async () => {
       if (!selectedBook.value || !editForm.value.title.trim()) return
-      
+
       saving.value = true
       try {
         // 更新图书信息（这里需要实现相应的 Tauri 命令）
@@ -667,19 +576,19 @@ export default {
           author: editForm.value.author.trim() || null,
           reading_progress: editForm.value.progress / 100
         }
-        
+
         // 更新阅读进度
         if (editForm.value.progress !== Math.round((selectedBook.value.reading_progress || 0) * 100)) {
           await bookStore.updateReadingProgress(selectedBook.value.id, editForm.value.progress / 100)
         }
-        
+
         // 更新本地状态
         selectedBook.value = updatedBook
         const bookIndex = books.value.findIndex(b => b.id === selectedBook.value.id)
         if (bookIndex !== -1) {
           books.value[bookIndex] = updatedBook
         }
-        
+
         showToast('图书信息更新成功', 'success')
         closeEditModal()
       } catch (error) {
@@ -689,10 +598,10 @@ export default {
         saving.value = false
       }
     }
-    
+
     const resetProgress = async () => {
       if (!selectedBook.value) return
-      
+
       try {
         await bookStore.updateReadingProgress(selectedBook.value.id, 0)
         selectedBook.value.reading_progress = 0
@@ -702,10 +611,10 @@ export default {
         showToast('重置进度失败: ' + error.message, 'error')
       }
     }
-    
+
     const markAsCompleted = async () => {
       if (!selectedBook.value) return
-      
+
       try {
         await bookStore.updateReadingProgress(selectedBook.value.id, 1)
         selectedBook.value.reading_progress = 1
@@ -715,7 +624,7 @@ export default {
         showToast('标记完成失败: ' + error.message, 'error')
       }
     }
-    
+
     const deleteBookmark = async (bookmarkId) => {
       try {
         await invoke('delete_bookmark', { bookmarkId })
@@ -772,26 +681,26 @@ export default {
         minute: '2-digit'
       })
     }
-    
+
     const formatDuration = (seconds) => {
       if (!seconds) return '0分钟'
-      
+
       const hours = Math.floor(seconds / 3600)
       const minutes = Math.floor((seconds % 3600) / 60)
-      
+
       if (hours > 0) {
         return `${hours}小时${minutes}分钟`
       }
       return `${minutes}分钟`
     }
-    
+
     const truncatePath = (path) => {
       if (!path) return ''
       if (path.length <= 50) return path
-      
+
       const parts = path.split('/')
       if (parts.length <= 2) return path
-      
+
       return `.../${parts.slice(-2).join('/')}`
     }
 
@@ -834,13 +743,13 @@ export default {
       bookmarks,
       editForm,
       toast,
-      
+
       // 计算属性
       loading,
       books,
       stats,
       displayBooks,
-      
+
       // 方法
       showToast,
       hideToast,
@@ -881,10 +790,14 @@ export default {
 
 /* 页面头部 */
 .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 2rem;
+  gap: 2rem;
 }
 
-.page-header h1 {
+.header-content h1 {
   color: var(--text-primary);
   font-size: 1.8rem;
   font-weight: 600;
@@ -896,6 +809,29 @@ export default {
   font-size: 0.9rem;
 }
 
+.header-actions {
+  display: flex;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .header-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  
+  .header-actions > * {
+    flex: 1;
+  }
+}
+
 /* 统计信息 */
 .stats-section {
   display: grid;
@@ -905,17 +841,13 @@ export default {
 }
 
 .stat-card {
-  background: var(--bg-primary);
-  padding: 1.5rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
   text-align: center;
 }
 
 .stat-card h3 {
   font-size: 2rem;
   font-weight: 600;
-  color: var(--accent-color);
+  color: var(--primary-color);
   margin-bottom: 0.5rem;
 }
 
@@ -924,93 +856,16 @@ export default {
   font-size: 0.9rem;
 }
 
-/* 快速操作 */
-.quick-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-}
+/* 快速操作已移至页面头部卡片 */
 
-.btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
-  text-decoration: none;
-  position: relative;
-  overflow: hidden;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn:not(:disabled):active {
-  transform: translateY(1px);
-}
-
-.btn-primary {
-  background: var(--accent-color);
-  color: white;
-  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
-  transform: translateY(-1px);
-}
-
-.btn-secondary {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  border-color: var(--accent-color);
-  color: var(--accent-color);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
-}
-
-.btn-danger {
-  background: #dc3545;
-  color: white;
-  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #c82333;
-  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
-  transform: translateY(-1px);
-}
-
-.icon {
-  font-size: 1rem;
-}
+/* 按钮样式已由BaseButton组件提供 */
 
 /* 搜索和过滤区域 */
 .controls-section {
   margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: var(--bg-primary);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
 }
 
-.search-bar {
+.search-input {
   margin-bottom: 1rem;
 }
 
@@ -1062,39 +917,8 @@ export default {
 
 .view-toggle {
   display: flex;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  overflow: hidden;
+  gap: 0.5rem;
   margin-left: auto;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.view-btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.85rem;
-  font-weight: 500;
-  font-family: inherit;
-  position: relative;
-}
-
-.view-btn:hover:not(.active) {
-  color: var(--text-primary);
-  background: var(--bg-primary);
-}
-
-.view-btn.active {
-  background: var(--accent-color);
-  color: white;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.view-btn:not(:last-child) {
-  border-right: 1px solid var(--border-color);
 }
 
 /* 图书容器 */
@@ -1105,9 +929,6 @@ export default {
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
-  background: var(--bg-primary);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
 }
 
 .empty-icon {
@@ -1129,9 +950,7 @@ export default {
   margin-bottom: 1.5rem;
 }
 
-.empty-actions {
-  margin-top: 1.5rem;
-}
+/* 空状态操作已移至BaseCard的actions插槽 */
 
 /* 图书网格 */
 .books-grid {
@@ -1534,45 +1353,45 @@ export default {
   .library {
     padding: 1rem;
   }
-  
+
   .stats-section {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem;
   }
-  
+
   .quick-actions {
     flex-direction: column;
     align-items: center;
   }
-  
+
   .filter-controls {
     flex-direction: column;
     align-items: stretch;
     gap: 1rem;
   }
-  
+
   .view-toggle {
     margin-left: 0;
     align-self: center;
   }
-  
+
   .books-grid.books-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .book-detail-header {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .book-cover-large {
     align-self: center;
   }
-  
+
   .book-detail-actions {
     flex-direction: column;
   }
-  
+
   .delete-actions {
     flex-direction: column;
   }

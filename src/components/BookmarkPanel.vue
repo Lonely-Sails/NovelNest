@@ -1,59 +1,64 @@
 <template>
-  <div class="bookmark-panel">
-    <div class="panel-header">
+  <BaseCard class="bookmark-panel">
+    <template #header>
       <h3>书签管理</h3>
-      <button @click="$emit('close')" class="close-btn">×</button>
-    </div>
+      <BaseButton @click="$emit('close')" variant="ghost" size="small" class="close-btn">
+        ×
+      </BaseButton>
+    </template>
     
     <div class="bookmark-content">
       <!-- 添加书签 -->
       <div class="add-bookmark-section">
-        <button @click="showAddForm = !showAddForm" class="add-bookmark-btn">
-          <span class="icon">📌</span>
-          <span>添加书签</span>
-        </button>
+        <BaseButton @click="showAddForm = !showAddForm" variant="primary" icon="📌" class="add-bookmark-btn">
+          添加书签
+        </BaseButton>
         
-        <div v-if="showAddForm" class="add-form">
-          <textarea 
+        <BaseCard v-if="showAddForm" class="add-form" compact>
+          <BaseInput
             v-model="newBookmarkNote" 
             placeholder="添加备注（可选）"
-            class="note-input"
-            rows="3"
-          ></textarea>
-          <div class="form-actions">
-            <button @click="addBookmark" class="confirm-btn">确认</button>
-            <button @click="cancelAdd" class="cancel-btn">取消</button>
-          </div>
-        </div>
+            type="textarea"
+            :rows="3"
+          />
+          <template #actions>
+            <BaseButton @click="addBookmark" variant="primary" size="small">确认</BaseButton>
+            <BaseButton @click="cancelAdd" variant="secondary" size="small">取消</BaseButton>
+          </template>
+        </BaseCard>
       </div>
       
       <!-- 书签列表 -->
       <div class="bookmarks-list">
-        <div v-if="bookmarks.length === 0" class="empty-state">
+        <BaseCard v-if="bookmarks.length === 0" class="empty-state">
           <div class="empty-icon">📖</div>
           <p>暂无书签</p>
           <p class="empty-hint">在阅读时添加书签，方便快速定位</p>
-        </div>
+        </BaseCard>
         
-        <div 
+        <BaseCard 
           v-for="bookmark in sortedBookmarks" 
           :key="bookmark.id"
           class="bookmark-item"
+          hoverable
           @click="goToBookmark(bookmark)"
         >
-          <div class="bookmark-header">
+          <template #header>
             <div class="bookmark-info">
-              <span class="bookmark-position">{{ formatPosition(bookmark.position) }}</span>
+              <BaseBadge variant="primary" class="bookmark-position">
+                {{ formatPosition(bookmark.position) }}
+              </BaseBadge>
               <span class="bookmark-time">{{ formatTime(bookmark.created_at) }}</span>
             </div>
-            <button 
+            <BaseButton 
               @click.stop="deleteBookmark(bookmark.id)" 
-              class="delete-btn"
+              variant="ghost"
+              size="small"
               title="删除书签"
             >
               🗑️
-            </button>
-          </div>
+            </BaseButton>
+          </template>
           
           <div v-if="bookmark.note" class="bookmark-note">
             {{ bookmark.note }}
@@ -62,10 +67,10 @@
           <div class="bookmark-preview">
             {{ bookmark.content_preview || '点击跳转到此位置' }}
           </div>
-        </div>
+        </BaseCard>
       </div>
     </div>
-  </div>
+  </BaseCard>
 </template>
 
 <script>
@@ -73,6 +78,7 @@ import { ref, computed, inject } from 'vue'
 
 export default {
   name: 'BookmarkPanel',
+  // 基础组件已全局注册，无需导入
   props: {
     bookmarks: {
       type: Array,
@@ -154,42 +160,15 @@ export default {
 <style scoped>
 .bookmark-panel {
   width: 320px;
-  background: var(--bg-primary);
   border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   z-index: 50;
-}
-
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.panel-header h3 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 1.1rem;
-  font-weight: 600;
+  height: 100%;
 }
 
 .close-btn {
-  background: none;
-  border: none;
   font-size: 1.5rem;
-  cursor: pointer;
-  color: var(--text-secondary);
-  padding: 0.25rem;
-  border-radius: 4px;
-  transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-  background-color: var(--sidebar-hover);
-  color: var(--text-primary);
 }
 
 .bookmark-content {
@@ -204,89 +183,14 @@ export default {
 }
 
 .add-bookmark-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   width: 100%;
-  padding: 0.75rem;
-  background: var(--accent-color);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.add-bookmark-btn:hover {
-  background-color: var(--accent-hover);
-  transform: translateY(-1px);
-}
-
-.add-bookmark-btn .icon {
-  font-size: 1.1rem;
 }
 
 .add-form {
   margin-top: 1rem;
-  padding: 1rem;
-  background: var(--bg-secondary);
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
 }
 
-.note-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 0.9rem;
-  resize: vertical;
-  min-height: 60px;
-}
-
-.note-input:focus {
-  outline: none;
-  border-color: var(--accent-color);
-}
-
-.form-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-}
-
-.confirm-btn,
-.cancel-btn {
-  flex: 1;
-  padding: 0.5rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
-}
-
-.confirm-btn {
-  background: var(--accent-color);
-  color: white;
-}
-
-.confirm-btn:hover {
-  background-color: var(--accent-hover);
-}
-
-.cancel-btn {
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-}
-
-.cancel-btn:hover {
-  background-color: var(--sidebar-hover);
-}
+/* 表单样式已由BaseInput和BaseButton组件提供 */
 
 /* 书签列表 */
 .bookmarks-list {
@@ -314,38 +218,14 @@ export default {
 }
 
 .bookmark-item {
-  padding: 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
   margin-bottom: 0.75rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: var(--bg-secondary);
-}
-
-.bookmark-item:hover {
-  border-color: var(--accent-color);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.bookmark-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.5rem;
 }
 
 .bookmark-info {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.bookmark-position {
-  font-weight: 600;
-  color: var(--accent-color);
-  font-size: 0.9rem;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .bookmark-time {
@@ -353,29 +233,14 @@ export default {
   color: var(--text-muted);
 }
 
-.delete-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 4px;
-  transition: all 0.3s ease;
-  opacity: 0.6;
-}
-
-.delete-btn:hover {
-  background-color: var(--error-color);
-  opacity: 1;
-}
-
 .bookmark-note {
-  background: var(--bg-primary);
+  background: var(--bg-secondary);
   padding: 0.5rem;
   border-radius: 4px;
   font-size: 0.9rem;
   color: var(--text-primary);
   margin-bottom: 0.5rem;
-  border-left: 3px solid var(--accent-color);
+  border-left: 3px solid var(--primary-color);
 }
 
 .bookmark-preview {

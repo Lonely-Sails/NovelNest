@@ -98,14 +98,10 @@
             <span class="label-text">启用键盘快捷键</span>
             <span class="label-desc">使用方向键、空格键等进行翻页</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.enableKeyboardShortcuts"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.enableKeyboardShortcuts"
+            @change="updateSettings"
+          />
         </div>
         
         <div class="setting-item">
@@ -113,14 +109,10 @@
             <span class="label-text">启用点击翻页</span>
             <span class="label-desc">点击页面左右区域进行翻页</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.enableClickTurn"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.enableClickTurn"
+            @change="updateSettings"
+          />
         </div>
         
         <div class="setting-item">
@@ -128,14 +120,10 @@
             <span class="label-text">启用滚轮翻页</span>
             <span class="label-desc">使用鼠标滚轮进行翻页</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.enableWheelTurn"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.enableWheelTurn"
+            @change="updateSettings"
+          />
         </div>
         
         <div class="setting-item">
@@ -143,14 +131,10 @@
             <span class="label-text">翻页动画</span>
             <span class="label-desc">翻页时显示过渡动画效果</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.enablePageAnimation"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.enablePageAnimation"
+            @change="updateSettings"
+          />
         </div>
         
         <div class="setting-item" v-if="localSettings.enablePageAnimation">
@@ -181,14 +165,10 @@
             <span class="label-text">显示章节标题</span>
             <span class="label-desc">在阅读页面顶部显示当前章节标题</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.showChapterTitle"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.showChapterTitle"
+            @change="updateSettings"
+          />
         </div>
         
         <div class="setting-item">
@@ -196,14 +176,10 @@
             <span class="label-text">显示进度条</span>
             <span class="label-desc">在页面底部显示阅读进度条</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.showProgressBar"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.showProgressBar"
+            @change="updateSettings"
+          />
         </div>
         
         <div class="setting-item">
@@ -211,14 +187,10 @@
             <span class="label-text">显示页码</span>
             <span class="label-desc">显示当前页码和总页数</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.showPageNumbers"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.showPageNumbers"
+            @change="updateSettings"
+          />
         </div>
         
         <div class="setting-item">
@@ -226,14 +198,10 @@
             <span class="label-text">显示阅读时间</span>
             <span class="label-desc">显示本次阅读时长和预计剩余时间</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.showReadingTime"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.showReadingTime"
+            @change="updateSettings"
+          />
         </div>
         
         <div class="setting-item">
@@ -263,14 +231,10 @@
             <span class="label-text">自动保存阅读进度</span>
             <span class="label-desc">定期自动保存当前阅读位置</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.autoSaveProgress"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.autoSaveProgress"
+            @change="updateSettings"
+          />
         </div>
         
         <div class="setting-item" v-if="localSettings.autoSaveProgress">
@@ -297,14 +261,10 @@
             <span class="label-text">退出时保存进度</span>
             <span class="label-desc">关闭阅读器时自动保存当前进度</span>
           </label>
-          <label class="setting-switch">
-            <input 
-              type="checkbox" 
-              v-model="localSettings.saveOnExit"
-              @change="updateSettings"
-            >
-            <span class="switch-slider"></span>
-          </label>
+          <BaseSwitch
+            v-model="localSettings.saveOnExit"
+            @change="updateSettings"
+          />
         </div>
       </div>
     </div>
@@ -335,12 +295,12 @@
     
     <!-- 操作按钮 -->
     <div class="settings-actions">
-      <button class="btn-secondary" @click="resetToDefaults">
+      <BaseButton @click="resetToDefaults" variant="secondary">
         恢复默认设置
-      </button>
-      <button class="btn-primary" @click="saveSettings" :disabled="saving">
-        {{ saving ? '保存中...' : '保存设置' }}
-      </button>
+      </BaseButton>
+      <BaseButton @click="saveSettings" variant="primary" :loading="saving">
+        保存设置
+      </BaseButton>
     </div>
   </div>
 </template>

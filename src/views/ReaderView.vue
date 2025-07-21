@@ -2,10 +2,9 @@
   <div class="reader" v-if="book" :class="{ 'fullscreen': isFullscreen }">
     <!-- 阅读器头部 -->
     <div class="reader-header" v-show="!isFullscreen || showControls">
-      <button @click="$router.back()" class="back-btn">
-        <span class="icon">←</span>
-        <span>返回</span>
-      </button>
+      <BaseButton @click="$router.back()" variant="ghost" icon="←">
+        返回
+      </BaseButton>
       
       <div class="book-info">
         <h2>{{ book.title }}</h2>
@@ -16,21 +15,11 @@
       </div>
       
       <div class="reader-controls">
-        <button @click="toggleSearch" class="control-btn" title="搜索 (Ctrl+F)">
-          <span class="icon">🔍</span>
-        </button>
-        <button @click="toggleBookmarks" class="control-btn" title="书签 (B)">
-          <span class="icon">📌</span>
-        </button>
-        <button @click="toggleFullscreen" class="control-btn" title="全屏 (F11)">
-          <span class="icon">{{ isFullscreen ? '🗗' : '🗖' }}</span>
-        </button>
-        <button @click="toggleSettings" class="control-btn" title="设置 (S)">
-          <span class="icon">⚙️</span>
-        </button>
-        <button @click="toggleToc" class="control-btn" title="目录 (T)">
-          <span class="icon">📋</span>
-        </button>
+        <BaseButton @click="toggleSearch" variant="ghost" size="small" title="搜索 (Ctrl+F)" icon="🔍" />
+        <BaseButton @click="toggleBookmarks" variant="ghost" size="small" title="书签 (B)" icon="📌" />
+        <BaseButton @click="toggleFullscreen" variant="ghost" size="small" title="全屏 (F11)" :icon="isFullscreen ? '🗗' : '🗖'" />
+        <BaseButton @click="toggleSettings" variant="ghost" size="small" title="设置 (S)" icon="⚙️" />
+        <BaseButton @click="toggleToc" variant="ghost" size="small" title="目录 (T)" icon="📋" />
       </div>
     </div>
 
@@ -72,7 +61,7 @@
         <div v-if="showSettings" class="settings-panel">
           <div class="panel-header">
             <h3>阅读设置</h3>
-            <button @click="showSettings = false" class="close-btn">×</button>
+            <BaseButton @click="showSettings = false" variant="ghost" size="small">×</BaseButton>
           </div>
           
           <div class="settings-content">
@@ -289,7 +278,7 @@
         <div v-if="showToc" class="toc-panel">
           <div class="panel-header">
             <h3>目录</h3>
-            <button @click="showToc = false" class="close-btn">×</button>
+            <BaseButton @click="showToc = false" variant="ghost" size="small">×</BaseButton>
           </div>
           
           <div class="toc-content">
@@ -332,41 +321,45 @@
       </div>
       
       <div class="navigation-controls">
-        <button 
+        <BaseButton 
           @click="previousChapter" 
           :disabled="!hasPreviousChapter"
-          class="nav-btn chapter-btn"
+          variant="outline"
+          size="small"
           title="上一章 (Ctrl+←)"
         >
           上一章
-        </button>
+        </BaseButton>
         
-        <button 
+        <BaseButton 
           @click="previousPage" 
           :disabled="!canGoPrevious"
-          class="nav-btn page-btn"
+          variant="outline"
+          size="small"
           title="上一页 (←)"
         >
           上一页
-        </button>
+        </BaseButton>
         
-        <button 
+        <BaseButton 
           @click="nextPage" 
           :disabled="!canGoNext && !hasNextChapter"
-          class="nav-btn page-btn"
+          variant="outline"
+          size="small"
           title="下一页 (→)"
         >
           {{ canGoNext ? '下一页' : (hasNextChapter ? '下一章' : '完') }}
-        </button>
+        </BaseButton>
         
-        <button 
+        <BaseButton 
           @click="nextChapter" 
           :disabled="!hasNextChapter"
-          class="nav-btn chapter-btn"
+          variant="outline"
+          size="small"
           title="下一章 (Ctrl+→)"
         >
           下一章
-        </button>
+        </BaseButton>
       </div>
     </div>
   </div>
@@ -377,7 +370,7 @@
       <h2>📖</h2>
       <h3>图书未找到</h3>
       <p>请检查图书是否存在或重新选择</p>
-      <button @click="$router.push('/library')" class="btn">返回图书库</button>
+      <BaseButton @click="$router.push('/library')" variant="primary">返回图书库</BaseButton>
     </div>
   </div>
 </template>

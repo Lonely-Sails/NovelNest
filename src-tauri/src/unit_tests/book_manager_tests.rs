@@ -6,13 +6,12 @@ mod tests {
     use std::path::PathBuf;
     use std::sync::Arc;
     use tempfile::TempDir;
-    use tokio;
 
     /// 创建测试用的数据库管理器
-    async fn create_test_db() -> (DatabaseManager, TempDir) {
+    async fn create_test_db() -> (Arc<DatabaseManager>, TempDir) {
         let temp_dir = TempDir::new().expect("创建临时目录失败");
         let db_path = temp_dir.path().join("test.db");
-        let db = DatabaseManager::new(&db_path).expect("创建测试数据库失败");
+        let db = Arc::new(DatabaseManager::new(&db_path).expect("创建测试数据库失败"));
         (db, temp_dir)
     }
 
@@ -20,7 +19,7 @@ mod tests {
     async fn create_test_book_manager() -> (BookManager, TempDir) {
         let (db, temp_dir) = create_test_db().await;
         let storage_path = temp_dir.path().to_path_buf();
-        let book_manager = BookManager::new(Arc::new(db), storage_path);
+        let book_manager = BookManager::new(db, storage_path);
         (book_manager, temp_dir)
     }
 

@@ -179,11 +179,35 @@ export const useSettingsStore = defineStore('settings', {
       try {
         const settings = await invoke('get_settings')
         if (settings) {
-          Object.keys(settings).forEach(key => {
-            if (this[key]) {
-              this[key] = { ...this[key], ...settings[key] }
-            }
-          })
+          // 转换后端AppSettings结构到前端结构
+          if (settings.theme) this.app.theme = settings.theme
+          if (settings.language) this.app.language = settings.language
+          if (settings.auto_save !== undefined) this.app.autoSave = settings.auto_save
+          if (settings.data_path) this.app.dataPath = settings.data_path
+          
+          if (settings.reader) {
+            const reader = settings.reader
+            if (reader.font_size) this.reader.fontSize = reader.font_size
+            if (reader.font_family) this.reader.fontFamily = reader.font_family
+            if (reader.line_height) this.reader.lineHeight = reader.line_height
+            if (reader.page_margin) this.reader.pageMargin = reader.page_margin
+            if (reader.background_color) this.reader.backgroundColor = reader.background_color
+            if (reader.text_color) this.reader.textColor = reader.text_color
+          }
+          
+          if (settings.book_sources) {
+            const bookSources = settings.book_sources
+            if (bookSources.enabled !== undefined) this.bookSources.enabled = bookSources.enabled
+            if (bookSources.auto_update !== undefined) this.bookSources.autoUpdate = bookSources.auto_update
+            if (bookSources.enabled_sources) this.bookSources.enabledSources = bookSources.enabled_sources
+          }
+          
+          if (settings.download) {
+            const download = settings.download
+            if (download.concurrent) this.download.concurrent = download.concurrent
+            if (download.timeout) this.download.timeout = download.timeout
+            if (download.retry_count) this.download.retryCount = download.retry_count
+          }
         }
       } catch (error) {
         console.error('从后端加载设置失败:', error)
@@ -206,17 +230,36 @@ export const useSettingsStore = defineStore('settings', {
     // 保存设置到后端
     async saveToBackend() {
       try {
+        // 转换为后端期望的AppSettings结构
         const settings = {
-          app: this.app,
-          reader: this.reader,
-          bookSources: this.bookSources,
-          download: this.download,
-          ui: this.ui
+          theme: this.app.theme,
+          language: this.app.language,
+          auto_save: this.app.autoSave,
+          data_path: this.app.dataPath,
+          reader: {
+            font_size: this.reader.fontSize,
+            font_family: this.reader.fontFamily,
+            line_height: this.reader.lineHeight,
+            page_margin: this.reader.pageMargin,
+            background_color: this.reader.backgroundColor,
+            text_color: this.reader.textColor
+          },
+          book_sources: {
+            enabled: this.bookSources.enabled,
+            auto_update: this.bookSources.autoUpdate,
+            enabled_sources: this.bookSources.enabledSources
+          },
+          download: {
+            concurrent: this.download.concurrent,
+            timeout: this.download.timeout,
+            retry_count: this.download.retryCount
+          }
         }
         
         await invoke('save_settings', { settings })
       } catch (error) {
         console.error('保存设置到后端失败:', error)
+        throw error
       }
     },
 
