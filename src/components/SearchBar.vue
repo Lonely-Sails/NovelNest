@@ -1,39 +1,29 @@
 <template>
   <div class="search-bar" :class="{ 'search-bar-focused': focused }">
     <div class="search-input-container">
-      <div class="search-icon">
-        🔍
-      </div>
-      <input
+      <BaseInput
         ref="inputRef"
         v-model="searchQuery"
         @input="handleInput"
         @focus="handleFocus"
         @blur="handleBlur"
         @keydown="handleKeydown"
-        type="text"
         :placeholder="placeholder"
-        class="search-input"
         :disabled="disabled"
+        prefix-icon="🔍"
+        :clearable="clearable"
+        @clear="clearSearch"
       />
-      <button
-        v-if="searchQuery && clearable"
-        @click="clearSearch"
-        class="search-clear"
-        type="button"
-      >
-        ✕
-      </button>
-      <button
+      <BaseButton
         v-if="showSearchButton"
         @click="handleSearch"
-        class="search-button"
-        type="button"
+        variant="primary"
+        size="small"
         :disabled="disabled || loading"
+        :loading="loading"
       >
-        <span v-if="loading" class="search-loading">⟳</span>
-        <span v-else>搜索</span>
-      </button>
+        搜索
+      </BaseButton>
     </div>
     
     <!-- 搜索建议下拉框 -->

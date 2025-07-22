@@ -1,10 +1,13 @@
 <script setup>
-import { ref } from "vue";
-import { useRouter, useRoute } from 'vue-router';
-import ThemeToggle from './components/ThemeToggle.vue';
+import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import ThemeToggle from './components/ThemeToggle.vue'
+import Toast from './components/Toast.vue'
 
-const router = useRouter();
-const route = useRoute();
+const route = useRoute()
+
+// 侧边栏展开状态，默认收起
+const isExpanded = ref(false)
 
 // 导航菜单项
 const menuItems = [
@@ -13,39 +16,51 @@ const menuItems = [
   { name: '在线下载', path: '/downloads', icon: '🌐' },
   { name: '插件管理', path: '/plugins', icon: '🔌' },
   { name: '设置', path: '/settings', icon: '⚙️' }
-];
+]
 
-const isActive = (path) => {
-  return route.path === path;
-};
+// 判断当前路由是否激活
+const isActive = (path) => route.path === path
+
+// 侧边栏交互处理
+const handleMouseEnter = () => {
+  isExpanded.value = true
+}
+
+const handleMouseLeave = () => {
+  isExpanded.value = false
+}
 </script>
 
 <template>
   <div class="app">
     <!-- 侧边导航栏 -->
-    <nav class="sidebar">
-      <div class="logo">
-        <h2>📖 NovelNest</h2>
-        <ThemeToggle />
+    <nav class="sidebar" :class="{ expanded: isExpanded }" @mouseenter="handleMouseEnter"
+      @mouseleave="handleMouseLeave">
+      <div class="sidebar-content">
+        <div class="logo">
+          <div class="logo-content">
+            <span class="logo-icon">📖</span>
+            <h2 class="logo-text">NovelNest</h2>
+          </div>
+          <ThemeToggle class="theme-toggle" />
+        </div>
+        <ul class="nav-menu">
+          <li v-for="item in menuItems" :key="item.path">
+            <router-link :to="item.path" :class="['nav-link', { active: isActive(item.path) }]"
+              :title="!isExpanded ? item.name : ''">
+              <span class="nav-icon">{{ item.icon }}</span>
+              <span class="nav-text">{{ item.name }}</span>
+            </router-link>
+          </li>
+        </ul>
       </div>
-      <ul class="nav-menu">
-        <li v-for="item in menuItems" :key="item.path">
-          <router-link 
-            :to="item.path" 
-            :class="['nav-link', { active: isActive(item.path) }]"
-          >
-            <span class="nav-icon">{{ item.icon }}</span>
-            <span class="nav-text">{{ item.name }}</span>
-          </router-link>
-        </li>
-      </ul>
     </nav>
 
     <!-- 主内容区域 -->
     <main class="main-content">
       <router-view />
     </main>
-    
+
     <!-- 全局 Toast 组件 -->
     <Toast />
   </div>
@@ -65,7 +80,7 @@ const isActive = (path) => {
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  
+
   /* 浅色主题 */
   --bg-primary: #ffffff;
   --bg-secondary: #fafafa;
@@ -131,14 +146,27 @@ body {
 }
 
 .sidebar {
-  width: 240px;
+  width: 60px;
   background: var(--sidebar-bg);
   color: var(--sidebar-text);
   position: fixed;
   height: 100vh;
-  overflow-y: auto;
+  overflow: hidden;
   border-right: 1px solid var(--border-color);
-  z-index: 100;
+  z-index: 1000;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar.expanded {
+  width: 240px;
+  box-shadow: 2px 0 15px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-content {
+  width: 240px;
+  height: 100%;
+  overflow-y: auto;
 }
 
 .logo {
@@ -147,13 +175,31 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 70px;
 }
 
-.logo h2 {
+.logo-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.logo-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.logo-text {
   font-size: 1.2rem;
   font-weight: 600;
   margin: 0;
   color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.theme-toggle {
+  flex-shrink: 0;
 }
 
 .nav-menu {
@@ -173,7 +219,9 @@ body {
   padding: 0.75rem 1.5rem;
   color: var(--text-secondary);
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  position: relative;
+  min-width: 0;
 }
 
 .nav-link:hover {
@@ -190,28 +238,64 @@ body {
   font-size: 1.1rem;
   width: 20px;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .nav-text {
   font-weight: 500;
   font-size: 0.9rem;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.expanded .nav-text {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* 为不同的导航项添加渐进延迟 */
+.sidebar.expanded .nav-menu li:nth-child(1) .nav-text {
+  transition-delay: 0.1s;
+}
+
+.sidebar.expanded .nav-menu li:nth-child(2) .nav-text {
+  transition-delay: 0.15s;
+}
+
+.sidebar.expanded .nav-menu li:nth-child(3) .nav-text {
+  transition-delay: 0.2s;
+}
+
+.sidebar.expanded .nav-menu li:nth-child(4) .nav-text {
+  transition-delay: 0.25s;
+}
+
+.sidebar.expanded .nav-menu li:nth-child(5) .nav-text {
+  transition-delay: 0.3s;
 }
 
 .main-content {
   flex: 1;
-  margin-left: 240px;
+  margin-left: 60px;
   min-height: 100vh;
   background: var(--bg-secondary);
+  transition: margin-left 0.3s ease;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
   .sidebar {
+    width: 50px;
+  }
+
+  .sidebar.expanded {
     width: 200px;
   }
-  
+
   .main-content {
-    margin-left: 200px;
+    margin-left: 50px;
   }
 }
 
@@ -220,22 +304,27 @@ body {
     width: 100%;
     height: auto;
     position: relative;
+    box-shadow: none;
   }
-  
+
+  .sidebar.expanded {
+    width: 100%;
+  }
+
   .main-content {
     margin-left: 0;
   }
-  
+
   .nav-menu {
     display: flex;
     overflow-x: auto;
     padding: 0.5rem;
   }
-  
+
   .nav-menu li {
     flex-shrink: 0;
   }
-  
+
   .nav-link {
     flex-direction: column;
     gap: 0.25rem;
@@ -243,7 +332,7 @@ body {
     text-align: center;
     min-width: 80px;
   }
-  
+
   .nav-text {
     font-size: 0.8rem;
   }

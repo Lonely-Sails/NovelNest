@@ -7,25 +7,31 @@
         name="toast"
         appear
       >
-        <div
+        <BaseCard
           class="toast"
           :class="[`toast-${toast.type}`, { 'toast-closable': toast.closable }]"
         >
-          <div class="toast-icon">
-            {{ getIcon(toast.type) }}
-          </div>
-          <div class="toast-content">
-            <div class="toast-title" v-if="toast.title">{{ toast.title }}</div>
-            <div class="toast-message">{{ toast.message }}</div>
-          </div>
-          <button
-            v-if="toast.closable"
-            @click="removeToast(toast.id)"
-            class="toast-close"
-          >
-            ✕
-          </button>
-        </div>
+          <template #header>
+            <div class="toast-header">
+              <BaseBadge 
+                :variant="toast.type === 'error' ? 'error' : toast.type === 'success' ? 'success' : toast.type === 'warning' ? 'warning' : 'info'"
+                :icon="getIcon(toast.type)"
+                size="small"
+              >
+                {{ toast.title || getTypeText(toast.type) }}
+              </BaseBadge>
+              <BaseButton
+                v-if="toast.closable"
+                @click="removeToast(toast.id)"
+                variant="ghost"
+                size="small"
+                icon="✕"
+              />
+            </div>
+          </template>
+          
+          <div class="toast-message">{{ toast.message }}</div>
+        </BaseCard>
       </Transition>
     </div>
   </Teleport>
@@ -117,10 +123,21 @@ export default {
       return icons[type] || icons.info
     }
 
+    const getTypeText = (type) => {
+      const texts = {
+        success: '成功',
+        error: '错误',
+        warning: '警告',
+        info: '信息'
+      }
+      return texts[type] || texts.info
+    }
+
     return {
       toasts,
       removeToast,
-      getIcon
+      getIcon,
+      getTypeText
     }
   }
 }
@@ -139,75 +156,22 @@ export default {
 }
 
 .toast {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-left: 4px solid;
   min-width: 300px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.toast-success {
-  border-left-color: #28a745;
-  background-color: #f8fff9;
-}
-
-.toast-error {
-  border-left-color: #dc3545;
-  background-color: #fff8f8;
-}
-
-.toast-warning {
-  border-left-color: #ffc107;
-  background-color: #fffdf5;
-}
-
-.toast-info {
-  border-left-color: #007bff;
-  background-color: #f8fbff;
-}
-
-.toast-icon {
-  font-size: 1.2rem;
-  flex-shrink: 0;
-  margin-top: 0.1rem;
-}
-
-.toast-content {
-  flex: 1;
-}
-
-.toast-title {
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 0.25rem;
-  font-size: 0.9rem;
+.toast-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .toast-message {
-  color: #495057;
-  font-size: 0.85rem;
-  line-height: 1.4;
-}
-
-.toast-close {
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 4px;
+  color: var(--text-primary);
   font-size: 0.9rem;
-  flex-shrink: 0;
-  transition: all 0.3s ease;
-}
-
-.toast-close:hover {
-  background-color: rgba(0, 0, 0, 0.1);
-  color: #495057;
+  line-height: 1.4;
+  margin-top: 0.5rem;
 }
 
 /* 动画效果 */
@@ -239,42 +203,5 @@ export default {
   }
 }
 
-/* 暗色主题支持 */
-.theme-dark .toast {
-  background: #2d3748;
-  color: #e2e8f0;
-}
-
-.theme-dark .toast-success {
-  background-color: #1a2e1a;
-}
-
-.theme-dark .toast-error {
-  background-color: #2e1a1a;
-}
-
-.theme-dark .toast-warning {
-  background-color: #2e2a1a;
-}
-
-.theme-dark .toast-info {
-  background-color: #1a1e2e;
-}
-
-.theme-dark .toast-title {
-  color: #e2e8f0;
-}
-
-.theme-dark .toast-message {
-  color: #a0aec0;
-}
-
-.theme-dark .toast-close {
-  color: #a0aec0;
-}
-
-.theme-dark .toast-close:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
-}
+/* 暗色主题支持已通过基础组件处理 */
 </style>

@@ -1,24 +1,35 @@
 <template>
   <Teleport to="body">
     <div v-if="show" class="modal-overlay" @click="handleOverlayClick">
-      <div class="modal-container" :class="{ 'modal-large': size === 'large', 'modal-small': size === 'small' }">
-        <div class="modal-header" v-if="title || $slots.header">
-          <slot name="header">
-            <h3 class="modal-title">{{ title }}</h3>
-          </slot>
-          <button v-if="closable" @click="close" class="modal-close">
-            ✕
-          </button>
-        </div>
+      <BaseCard 
+        class="modal-container" 
+        :class="{ 'modal-large': size === 'large', 'modal-small': size === 'small' }"
+      >
+        <template #header v-if="title || $slots.header">
+          <div class="modal-header">
+            <slot name="header">
+              <h3 class="modal-title">{{ title }}</h3>
+            </slot>
+            <BaseButton
+              v-if="closable"
+              @click="close"
+              variant="ghost"
+              size="small"
+              icon="✕"
+            />
+          </div>
+        </template>
         
         <div class="modal-body">
           <slot></slot>
         </div>
         
-        <div class="modal-footer" v-if="$slots.footer">
-          <slot name="footer"></slot>
-        </div>
-      </div>
+        <template #footer v-if="$slots.footer">
+          <div class="modal-footer">
+            <slot name="footer"></slot>
+          </div>
+        </template>
+      </BaseCard>
     </div>
   </Teleport>
 </template>
@@ -104,15 +115,11 @@ export default {
 }
 
 .modal-container {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   max-width: 500px;
   width: 100%;
   max-height: 90vh;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
 .modal-small {
@@ -127,13 +134,12 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e9ecef;
+  width: 100%;
 }
 
 .modal-title {
   margin: 0;
-  color: #2c3e50;
+  color: var(--text-primary);
   font-size: 1.25rem;
   font-weight: 600;
 }
