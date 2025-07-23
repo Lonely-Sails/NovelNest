@@ -486,12 +486,12 @@ export default {
 .theme-card:hover {
   border-color: var(--accent-color);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 .theme-card.active {
   border-color: var(--accent-color);
-  background: rgba(0, 123, 255, 0.05);
+  background: var(--primary-bg);
 }
 
 .theme-preview {
@@ -820,7 +820,7 @@ input:checked + .switch-slider:before {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #0056b3;
+  background: var(--primary-hover);
 }
 
 .btn-primary:disabled {

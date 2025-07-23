@@ -8,11 +8,11 @@
       </div>
       
       <div class="header-actions">
-        <BaseButton @click="importBook" variant="primary" :loading="loading" icon="📖">
+        <BaseButton @click="showImporter" variant="primary" icon="📖">
           导入图书
         </BaseButton>
-        <BaseButton @click="importFolder" variant="secondary" :loading="loading" icon="📁">
-          导入文件夹
+        <BaseButton @click="refreshLibrary" variant="outline" :loading="loading" icon="🔄">
+          刷新
         </BaseButton>
       </div>
     </div>
@@ -96,7 +96,7 @@
         <h3>还没有图书</h3>
         <p>点击上方按钮开始导入您的第一本图书</p>
         <template #actions>
-          <BaseButton @click="importBook" variant="primary" icon="📖">
+          <BaseButton @click="showImporter" variant="primary" icon="📖">
             导入图书
           </BaseButton>
         </template>
@@ -276,6 +276,16 @@
       </div>
     </Modal>
 
+    <!-- 图书导入器 -->
+    <Modal v-if="showBookImporter" @close="closeImporter" title="导入图书" size="large">
+      <BookImporter 
+        :on-import-complete="handleImportComplete"
+        @import-complete="handleImportComplete"
+        @import-start="handleImportStart"
+        @import-progress="handleImportProgress"
+      />
+    </Modal>
+
     <!-- Toast 提示 -->
     <Toast v-if="toast.show" :message="toast.message" :type="toast.type" @close="hideToast" />
   </div>
@@ -288,6 +298,7 @@ import { useBookStore } from '@/stores/bookStore'
 import { invoke } from '@tauri-apps/api/core'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import BookCard from '@/components/BookCard.vue'
+import BookImporter from '@/components/BookImporter.vue'
 import SearchBar from '@/components/SearchBar.vue'
 import Modal from '@/components/Modal.vue'
 import Loading from '@/components/Loading.vue'
@@ -298,6 +309,7 @@ export default {
   name: 'LibraryView',
   components: {
     BookCard,
+    BookImporter,
     SearchBar,
     Modal,
     Loading,
@@ -324,6 +336,7 @@ export default {
     const deleting = ref(false)
     const showEditBook = ref(false)
     const saving = ref(false)
+    const showBookImporter = ref(false)
 
     // 图书详情相关数据
     const readingHistory = ref([])
@@ -457,44 +470,38 @@ export default {
       // 排序逻辑已在 displayBooks 计算属性中处理
     }
 
-    const importBook = async () => {
-      try {
-        // 使用 Tauri 的文件对话框 API 选择文件
-        const filePath = await open({
-          multiple: false,
-          filters: [{
-            name: '电子书文件',
-            extensions: ['txt', 'epub', 'pdf']
-          }]
-        })
-
-        // 如果用户取消了选择，filePath 会是 null
-        if (filePath) {
-          await bookStore.importBook(filePath)
-          showToast('图书导入成功', 'success')
-        }
-      } catch (error) {
-        console.error('导入图书失败:', error)
-        showToast('导入图书失败: ' + error.message, 'error')
-      }
+    const showImporter = () => {
+      showBookImporter.value = true
     }
 
-    const importFolder = async () => {
-      try {
-        // 使用 Tauri 的文件对话框 API 选择文件夹
-        const folderPath = await open({
-          directory: true,
-          multiple: false
-        })
+    const closeImporter = () => {
+      showBookImporter.value = false
+    }
 
-        // 如果用户取消了选择，folderPath 会是 null
-        if (folderPath) {
-          const importedBooks = await bookStore.importFolder(folderPath)
-          showToast(`成功导入 ${importedBooks.length} 本图书`, 'success')
-        }
+    const handleImportComplete = async (result) => {
+      if (result.success > 0) {
+        await bookStore.loadBooks() // 刷新图书列表
+        showToast(`成功导入 ${result.success} 本图书${result.error > 0 ? `，${result.error} 个失败` : ''}`, 'success')
+      }
+      closeImporter()
+    }
+
+    const handleImportStart = (data) => {
+      showToast(`开始导入 ${data.files.length} 个文件`, 'info')
+    }
+
+    const handleImportProgress = (data) => {
+      // 可以在这里显示进度信息
+      console.log(`导入进度: ${data.current}/${data.total} - ${data.file}`)
+    }
+
+    const refreshLibrary = async () => {
+      try {
+        await bookStore.loadBooks()
+        showToast('图书库已刷新', 'success')
       } catch (error) {
-        console.error('导入文件夹失败:', error)
-        showToast('导入文件夹失败: ' + error.message, 'error')
+        console.error('刷新图书库失败:', error)
+        showToast('刷新失败: ' + error.message, 'error')
       }
     }
 
@@ -739,6 +746,7 @@ export default {
       deleting,
       showEditBook,
       saving,
+      showBookImporter,
       readingHistory,
       bookmarks,
       editForm,
@@ -757,8 +765,12 @@ export default {
       handleClearSearch,
       applyFilters,
       applySorting,
-      importBook,
-      importFolder,
+      showImporter,
+      closeImporter,
+      handleImportComplete,
+      handleImportStart,
+      handleImportProgress,
+      refreshLibrary,
       openBook,
       editBook,
       closeBookDetail,

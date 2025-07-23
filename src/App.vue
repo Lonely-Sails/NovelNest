@@ -1,41 +1,51 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import ThemeToggle from './components/ThemeToggle.vue'
+import { invoke } from '@tauri-apps/api/core'
+import router from './router'
 import Toast from './components/Toast.vue'
+import ThemeToggle from './components/ThemeToggle.vue'
 
 const route = useRoute()
 
-// 侧边栏展开状态，默认收起
-const isExpanded = ref(false)
-
 // 导航菜单项
 const menuItems = [
-  { name: '首页', path: '/', icon: '🏠' },
-  { name: '图书库', path: '/library', icon: '📚' },
-  { name: '在线下载', path: '/downloads', icon: '🌐' },
-  { name: '插件管理', path: '/plugins', icon: '🔌' },
-  { name: '设置', path: '/settings', icon: '⚙️' }
+  { name: '首页', path: '/', icon: '🏠', type: 'route' },
+  { name: '图书库', path: '/library', icon: '📚', type: 'route' },
+  { name: '在线下载', path: '/downloads', icon: '🌐', type: 'route' },
+  { name: '插件管理', path: '/plugins', icon: '🔌', type: 'route' },
+  { name: '设置', path: '/settings', icon: '⚙️', type: 'window' }
 ]
 
+const sidebar = ref(true);
 // 判断当前路由是否激活
 const isActive = (path) => route.path === path
 
-// 侧边栏交互处理
-const handleMouseEnter = () => {
-  isExpanded.value = true
+// 处理菜单项点击
+const handleMenuClick = async (item) => {
+  if (item.type === 'window' && item.path === '/settings') {
+    try {
+      await invoke('open_window', { router: 'settings' })
+    } catch (error) {
+      console.error('打开设置窗口失败:', error)
+    }
+  }
 }
 
-const handleMouseLeave = () => {
-  isExpanded.value = false
-}
+onMounted(() => {
+  const url = new URL(window.location.href)
+  const routerName = url.searchParams.get('router')
+  if (routerName) {
+    sidebar.value = false
+    router.push(routerName)
+  }
+})
 </script>
 
 <template>
   <div class="app">
     <!-- 侧边导航栏 -->
-    <nav class="sidebar" :class="{ expanded: isExpanded }" @mouseenter="handleMouseEnter"
-      @mouseleave="handleMouseLeave">
+    <nav class="sidebar" v-if="sidebar">
       <div class="sidebar-content">
         <div class="logo">
           <div class="logo-content">
@@ -46,11 +56,19 @@ const handleMouseLeave = () => {
         </div>
         <ul class="nav-menu">
           <li v-for="item in menuItems" :key="item.path">
-            <router-link :to="item.path" :class="['nav-link', { active: isActive(item.path) }]"
-              :title="!isExpanded ? item.name : ''">
+            <!-- 路由链接 -->
+            <router-link v-if="item.type === 'route'" :title="item.name" :to="item.path"
+              :class="['nav-link', { active: isActive(item.path) }]">
               <span class="nav-icon">{{ item.icon }}</span>
               <span class="nav-text">{{ item.name }}</span>
             </router-link>
+
+            <!-- 窗口按钮 -->
+            <button v-else-if="item.type === 'window'" :title="item.name" :class="['nav-link', 'nav-button']"
+              @click="handleMenuClick(item)">
+              <span class="nav-icon">{{ item.icon }}</span>
+              <span class="nav-text">{{ item.name }}</span>
+            </button>
           </li>
         </ul>
       </div>
@@ -66,101 +84,22 @@ const handleMouseLeave = () => {
   </div>
 </template>
 
-<style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-:root {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-  font-weight: 400;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  /* 浅色主题 */
-  --bg-primary: #ffffff;
-  --bg-secondary: #fafafa;
-  --text-primary: #333333;
-  --text-secondary: #666666;
-  --text-muted: #999999;
-  --border-color: #e0e0e0;
-  --border-color-light: #f0f0f0;
-  --primary-color: #007bff;
-  --primary-color-dark: #0056b3;
-  --primary-color-light: rgba(0, 123, 255, 0.1);
-  --success-color: #28a745;
-  --warning-color: #ffc107;
-  --error-color: #dc3545;
-  --accent-color: #007bff;
-  --accent-hover: #0056b3;
-  --sidebar-bg: #f5f5f5;
-  --sidebar-text: #333333;
-  --sidebar-hover: #eeeeee;
-  --sidebar-active: #007bff;
-}
-
-/* 暗色主题 */
-.theme-dark {
-  --bg-primary: #1e1e1e;
-  --bg-secondary: #2d2d2d;
-  --text-primary: #ffffff;
-  --text-secondary: #cccccc;
-  --text-muted: #999999;
-  --border-color: #404040;
-  --border-color-light: #353535;
-  --primary-color: #1e90ff;
-  --primary-color-dark: #1c7ed6;
-  --primary-color-light: rgba(30, 144, 255, 0.1);
-  --success-color: #28a745;
-  --warning-color: #ffc107;
-  --error-color: #dc3545;
-  --accent-color: #1e90ff;
-  --accent-hover: #1c7ed6;
-  --sidebar-bg: #252525;
-  --sidebar-text: #ffffff;
-  --sidebar-hover: #333333;
-  --sidebar-active: #1e90ff;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  transition: all 0.2s ease;
-}
-
-#app {
-  min-height: 100vh;
-}
-</style>
-
 <style scoped>
 .app {
   display: flex;
-  min-height: 100vh;
 }
 
 .sidebar {
-  width: 60px;
-  background: var(--sidebar-bg);
+  width: 240px;
+  box-shadow: var(--shadow-md);
   color: var(--sidebar-text);
-  position: fixed;
   height: 100vh;
   overflow: hidden;
   border-right: 1px solid var(--border-color);
   z-index: 1000;
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-.sidebar.expanded {
-  width: 240px;
-  box-shadow: 2px 0 15px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-sm);
+  background: var(--sidebar-bg);
 }
 
 .sidebar-content {
@@ -170,7 +109,7 @@ body {
 }
 
 .logo {
-  padding: 1.5rem;
+  padding: 1.75rem;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
@@ -219,7 +158,7 @@ body {
   padding: 0.75rem 1.5rem;
   color: var(--text-secondary);
   text-decoration: none;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: all var(--transition-normal);
   position: relative;
   min-width: 0;
 }
@@ -230,8 +169,8 @@ body {
 }
 
 .nav-link.active {
-  background-color: var(--accent-color);
   color: white;
+  background-color: var(--accent-color);
 }
 
 .nav-icon {
@@ -245,41 +184,21 @@ body {
   font-weight: 500;
   font-size: 0.9rem;
   white-space: nowrap;
-  opacity: 0;
-  transform: translateX(20px);
-  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.sidebar.expanded .nav-text {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-/* 为不同的导航项添加渐进延迟 */
-.sidebar.expanded .nav-menu li:nth-child(1) .nav-text {
-  transition-delay: 0.1s;
-}
-
-.sidebar.expanded .nav-menu li:nth-child(2) .nav-text {
-  transition-delay: 0.15s;
-}
-
-.sidebar.expanded .nav-menu li:nth-child(3) .nav-text {
-  transition-delay: 0.2s;
-}
-
-.sidebar.expanded .nav-menu li:nth-child(4) .nav-text {
-  transition-delay: 0.25s;
-}
-
-.sidebar.expanded .nav-menu li:nth-child(5) .nav-text {
-  transition-delay: 0.3s;
+.nav-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  width: 100%;
+  float: bottom;
 }
 
 .main-content {
   flex: 1;
-  margin-left: 60px;
-  min-height: 100vh;
+  max-height: 100vh;
+  overflow-x: auto;
   background: var(--bg-secondary);
   transition: margin-left 0.3s ease;
 }

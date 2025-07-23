@@ -187,7 +187,6 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useToast } from '../../composables/useToast'
-import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 
 export default {

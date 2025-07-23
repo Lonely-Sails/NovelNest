@@ -103,30 +103,6 @@ export const useSettingsStore = defineStore('settings', {
       return themes[state.reader.theme] || themes.light
     },
     
-    // 应用主题样式
-    appThemeStyles: (state) => {
-      const themes = {
-        light: {
-          '--bg-primary': '#ffffff',
-          '--bg-secondary': '#f8f9fa',
-          '--text-primary': '#2c3e50',
-          '--text-secondary': '#6c757d',
-          '--border-color': '#dee2e6',
-          '--accent-color': '#007bff'
-        },
-        dark: {
-          '--bg-primary': '#1a1a1a',
-          '--bg-secondary': '#2d3748',
-          '--text-primary': '#e2e8f0',
-          '--text-secondary': '#a0aec0',
-          '--border-color': '#4a5568',
-          '--accent-color': '#4299e1'
-        }
-      }
-      
-      return themes[state.app.theme] || themes.light
-    },
-    
     // 启用的书源列表
     enabledBookSources: (state) => state.bookSources.enabledSources,
     
@@ -307,7 +283,6 @@ export const useSettingsStore = defineStore('settings', {
     applyTheme() {
       // 更新body类名
       document.body.className = `theme-${this.app.theme}`
-      
       // 触发CSS变量更新
       document.documentElement.setAttribute('data-theme', this.app.theme)
     },

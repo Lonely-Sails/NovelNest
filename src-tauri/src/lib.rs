@@ -281,6 +281,161 @@ async fn get_paginated_content(
         .map_err(|e| e.to_string())
 }
 
+/// 扫描文件夹中的电子书文件
+#[tauri::command]
+async fn scan_folder_for_books(folder_path: String) -> Result<Vec<String>, String> {
+    use std::fs;
+    use std::path::Path;
+    
+    let folder = Path::new(&folder_path);
+    if !folder.exists() || !folder.is_dir() {
+        return Err("文件夹不存在或不是有效目录".to_string());
+    }
+    
+    let supported_extensions = ["txt", "epub", "pdf", "mobi", "azw3"];
+    let mut book_files = Vec::new();
+    
+    fn scan_directory(dir: &Path, files: &mut Vec<String>, extensions: &[&str]) -> Result<(), String> {
+        let entries = fs::read_dir(dir).map_err(|e| format!("读取目录失败: {}", e))?;
+        
+        for entry in entries {
+            let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
+            let path = entry.path();
+            
+            if path.is_dir() {
+                // 递归扫描子目录
+                scan_directory(&path, files, extensions)?;
+            } else if path.is_file() {
+                if let Some(extension) = path.extension() {
+                    if let Some(ext_str) = extension.to_str() {
+                        if extensions.contains(&ext_str.to_lowercase().as_str()) {
+                            files.push(path.to_string_lossy().to_string());
+                        }
+                    }
+                }
+            }
+        }
+        
+        Ok(())
+    }
+    
+    scan_directory(folder, &mut book_files, &supported_extensions)
+        .map_err(|e| format!("扫描文件夹失败: {}", e))?;
+    
+    Ok(book_files)
+}
+
+/// 获取文件信息
+#[tauri::command]
+async fn get_file_info(file_path: String) -> Result<models::FileInfo, String> {
+    use std::fs;
+    use std::path::Path;
+    
+    let path = Path::new(&file_path);
+    if !path.exists() {
+        return Err("文件不存在".to_string());
+    }
+    
+    let metadata = fs::metadata(path).map_err(|e| format!("获取文件信息失败: {}", e))?;
+    
+    let name = path.file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("未知文件")
+        .to_string();
+    
+    let extension = path.extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_string();
+    
+    Ok(models::FileInfo {
+        name,
+        size: metadata.len(),
+        extension,
+        path: file_path,
+        is_file: metadata.is_file(),
+        is_dir: metadata.is_dir(),
+        modified: metadata.modified()
+            .map(|time| time.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs())
+            .unwrap_or(0),
+    })
+}
+
+/// 检查图书是否已存在
+#[tauri::command]
+async fn check_book_exists(file_path: String, state: State<'_, AppState>) -> Result<bool, String> {
+    let books = state
+        .book_manager
+        .get_all_books()
+        .await
+        .map_err(|e| e.to_string())?;
+    
+    let exists = books.iter().any(|book| book.file_path == file_path);
+    Ok(exists)
+}
+
+/// 批量导入图书（带进度回调）
+#[tauri::command]
+async fn batch_import_books(
+    file_paths: Vec<String>,
+    skip_existing: bool,
+    state: State<'_, AppState>,
+) -> Result<models::BatchImportResult, String> {
+    let mut results = Vec::new();
+    let mut success_count = 0;
+    let mut error_count = 0;
+    let mut skipped_count = 0;
+    
+    for file_path in file_paths {
+        let path = std::path::PathBuf::from(&file_path);
+        
+        // 检查是否已存在
+        if skip_existing {
+            let exists = check_book_exists(file_path.clone(), state.clone()).await?;
+            if exists {
+                results.push(models::ImportResult {
+                    file_path: file_path.clone(),
+                    status: "skipped".to_string(),
+                    error: Some("文件已存在".to_string()),
+                    book: None,
+                });
+                skipped_count += 1;
+                continue;
+            }
+        }
+        
+        // 尝试导入
+        match state.book_manager.import_book(path).await {
+            Ok(book) => {
+                results.push(models::ImportResult {
+                    file_path: file_path.clone(),
+                    status: "success".to_string(),
+                    error: None,
+                    book: Some(book),
+                });
+                success_count += 1;
+            }
+            Err(e) => {
+                results.push(models::ImportResult {
+                    file_path: file_path.clone(),
+                    status: "error".to_string(),
+                    error: Some(e.to_string()),
+                    book: None,
+                });
+                error_count += 1;
+            }
+        }
+    }
+    
+    Ok(models::BatchImportResult {
+        total: results.len(),
+        success: success_count,
+        error: error_count,
+        skipped: skipped_count,
+        results,
+    })
+}
+
 // 插件工具函数命令
 
 /// 插件HTTP GET请求
@@ -402,6 +557,32 @@ async fn save_settings(
 ) -> Result<(), String> {
     let mut current_settings = state.settings.write().await;
     *current_settings = settings;
+    Ok(())
+}
+
+/// 打开设置窗口
+#[tauri::command]
+async fn open_window(router: String, app: tauri::AppHandle) -> Result<(), String> {
+    // 检查设置窗口是否已经存在
+    if let Some(window) = app.get_webview_window(&router) {
+        // 如果窗口存在，显示并聚焦
+        window.show().map_err(|e| e.to_string())?;
+        window.set_focus().map_err(|e| e.to_string())?;
+    } else {
+        // 如果窗口不存在，创建新窗口
+        let _ = tauri::WebviewWindowBuilder::new(
+            &app,
+            &router,
+            tauri::WebviewUrl::App(format!("/?router={}", router).into())
+        )
+        .title("设置 - NovelNest")
+        .inner_size(900.0, 700.0)
+        .min_inner_size(800.0, 600.0)
+        .resizable(true)
+        .build()
+        .map_err(|e| e.to_string())?;
+    }
+    
     Ok(())
 }
 
@@ -790,9 +971,12 @@ pub fn run() {
             delete_bookmark,
             get_book_content,
             get_book_chapters,
-
             get_chapter_content,
             get_paginated_content,
+            scan_folder_for_books,
+            get_file_info,
+            check_book_exists,
+            batch_import_books,
             plugin_http_get,
             plugin_http_post,
             plugin_parse_html,
@@ -807,7 +991,8 @@ pub fn run() {
             get_online_chapters,
             download_book,
             get_settings,
-            save_settings
+            save_settings,
+            open_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

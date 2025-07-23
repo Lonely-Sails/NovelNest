@@ -110,7 +110,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal-backdrop);
   padding: 1rem;
 }
 
@@ -119,7 +119,8 @@ export default {
   width: 100%;
   max-height: 90vh;
   overflow: hidden;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-xl);
+  z-index: var(--z-modal);
 }
 
 .modal-small {
@@ -149,15 +150,15 @@ export default {
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #6c757d;
+  color: var(--text-secondary);
   padding: 0.25rem;
   border-radius: 4px;
   transition: all 0.3s ease;
 }
 
 .modal-close:hover {
-  background-color: #f8f9fa;
-  color: #495057;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .modal-body {
@@ -168,7 +169,7 @@ export default {
 
 .modal-footer {
   padding: 1rem 1.5rem;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;

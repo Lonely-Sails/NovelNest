@@ -159,7 +159,7 @@ export default {
 }
 
 .badge-info {
-  background-color: #17a2b8;
+  background-color: var(--info-color);
   color: white;
 }
 
@@ -202,8 +202,8 @@ export default {
 
 .badge-outline.badge-info {
   background-color: transparent;
-  color: #17a2b8;
-  border-color: #17a2b8;
+  color: var(--info-color);
+  border-color: var(--info-color);
 }
 
 /* 圆角样式 */

@@ -7,6 +7,7 @@ import Toast from './components/Toast.vue';
 import baseComponents from './plugins/baseComponents.js';
 
 // 引入基础样式和变量
+import './styles/base.css'
 import './styles/variables.css';
 
 const app = createApp(App);

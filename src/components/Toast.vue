@@ -148,7 +148,7 @@ export default {
   position: fixed;
   top: 1rem;
   right: 1rem;
-  z-index: 1100;
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -157,7 +157,7 @@ export default {
 
 .toast {
   min-width: 300px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
 .toast-header {

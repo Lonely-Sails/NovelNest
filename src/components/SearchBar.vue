@@ -333,21 +333,21 @@ export default {
 .search-input-container {
   display: flex;
   align-items: center;
-  background: white;
-  border: 2px solid #e9ecef;
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   transition: all 0.3s ease;
   overflow: hidden;
 }
 
 .search-bar-focused .search-input-container {
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-color-light);
 }
 
 .search-icon {
   padding: 0 0.75rem;
-  color: #6c757d;
+  color: var(--text-secondary);
   font-size: 1rem;
 }
 
@@ -361,11 +361,11 @@ export default {
 }
 
 .search-input::placeholder {
-  color: #adb5bd;
+  color: var(--text-muted);
 }
 
 .search-input:disabled {
-  color: #6c757d;
+  color: var(--text-secondary);
   cursor: not-allowed;
 }
 
@@ -380,16 +380,16 @@ export default {
 }
 
 .search-clear {
-  color: #6c757d;
+  color: var(--text-secondary);
 }
 
 .search-clear:hover {
-  color: #495057;
-  background-color: #f8f9fa;
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
 }
 
 .search-button {
-  background-color: #007bff;
+  background-color: var(--primary-color);
   color: white;
   border-radius: 0 6px 6px 0;
   margin: -2px -2px -2px 0;
@@ -397,11 +397,11 @@ export default {
 }
 
 .search-button:hover:not(:disabled) {
-  background-color: #0056b3;
+  background-color: var(--primary-hover);
 }
 
 .search-button:disabled {
-  background-color: #6c757d;
+  background-color: var(--text-secondary);
   cursor: not-allowed;
 }
 
@@ -416,11 +416,11 @@ export default {
   top: 100%;
   left: 0;
   right: 0;
-  background: white;
-  border: 1px solid #e9ecef;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-top: none;
   border-radius: 0 0 8px 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
   z-index: 100;
   max-height: 300px;
   overflow-y: auto;
@@ -434,13 +434,13 @@ export default {
   padding: 0.75rem;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  border-bottom: 1px solid #f8f9fa;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .suggestion-item:hover,
 .suggestion-highlighted,
 .history-item:hover {
-  background-color: #f8f9fa;
+  background-color: var(--bg-secondary);
 }
 
 .suggestion-icon,
@@ -456,7 +456,7 @@ export default {
 
 .suggestion-title {
   font-weight: 500;
-  color: #2c3e50;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -464,7 +464,7 @@ export default {
 
 .suggestion-subtitle {
   font-size: 0.85rem;
-  color: #6c757d;
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -475,16 +475,16 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0.75rem;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
   font-size: 0.85rem;
-  color: #6c757d;
+  color: var(--text-secondary);
 }
 
 .history-clear {
   background: none;
   border: none;
-  color: #007bff;
+  color: var(--primary-color);
   cursor: pointer;
   font-size: 0.8rem;
 }
@@ -508,7 +508,7 @@ export default {
 .history-remove {
   background: none;
   border: none;
-  color: #6c757d;
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 0.25rem;
   border-radius: 4px;
@@ -522,8 +522,8 @@ export default {
 }
 
 .history-remove:hover {
-  background-color: #e9ecef;
-  color: #495057;
+  background-color: var(--border-color);
+  color: var(--text-primary);
 }
 
 @keyframes spin {
@@ -535,52 +535,5 @@ export default {
   }
 }
 
-/* 暗色主题支持 */
-.theme-dark .search-input-container {
-  background: #2d3748;
-  border-color: #4a5568;
-}
-
-.theme-dark .search-bar-focused .search-input-container {
-  border-color: #4299e1;
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.25);
-}
-
-.theme-dark .search-input {
-  color: #e2e8f0;
-}
-
-.theme-dark .search-input::placeholder {
-  color: #a0aec0;
-}
-
-.theme-dark .search-icon {
-  color: #a0aec0;
-}
-
-.theme-dark .search-suggestions,
-.theme-dark .search-history {
-  background: #2d3748;
-  border-color: #4a5568;
-}
-
-.theme-dark .suggestion-item:hover,
-.theme-dark .suggestion-highlighted,
-.theme-dark .history-item:hover {
-  background-color: #4a5568;
-}
-
-.theme-dark .suggestion-title {
-  color: #e2e8f0;
-}
-
-.theme-dark .suggestion-subtitle {
-  color: #a0aec0;
-}
-
-.theme-dark .history-header {
-  background-color: #4a5568;
-  border-color: #718096;
-  color: #a0aec0;
-}
+/* 暗色主题支持已通过 CSS 变量统一处理 */
 </style>

@@ -93,7 +93,7 @@ export default {
 .spinner-ring {
   position: absolute;
   border: 3px solid transparent;
-  border-top: 3px solid #007bff;
+  border-top: 3px solid var(--primary-color);
   border-radius: 50%;
   animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
 }
@@ -132,7 +132,7 @@ export default {
 }
 
 .loading-text {
-  color: #6c757d;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   text-align: center;
 }
@@ -146,16 +146,8 @@ export default {
   }
 }
 
-/* 暗色主题支持 */
+/* 暗色主题支持已通过 CSS 变量统一处理 */
 .theme-dark .loading-overlay {
   background-color: rgba(26, 26, 26, 0.9);
-}
-
-.theme-dark .spinner-ring {
-  border-top-color: #4299e1;
-}
-
-.theme-dark .loading-text {
-  color: #a0aec0;
 }
 </style>

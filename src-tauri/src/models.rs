@@ -238,3 +238,34 @@ pub struct PaginatedContent {
     pub has_next_page: bool,
     pub has_previous_page: bool,
 }
+
+/// 文件信息
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileInfo {
+    pub name: String,
+    pub size: u64,
+    pub extension: String,
+    pub path: String,
+    pub is_file: bool,
+    pub is_dir: bool,
+    pub modified: u64, // Unix时间戳
+}
+
+/// 导入结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImportResult {
+    pub file_path: String,
+    pub status: String, // "success", "error", "skipped"
+    pub error: Option<String>,
+    pub book: Option<Book>,
+}
+
+/// 批量导入结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchImportResult {
+    pub total: usize,
+    pub success: usize,
+    pub error: usize,
+    pub skipped: usize,
+    pub results: Vec<ImportResult>,
+}

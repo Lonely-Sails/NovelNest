@@ -392,10 +392,9 @@ export default {
 
     
     // UI 状态
-    const showSettingsse)
-    const showToc = r
-    const isFullscre)
-    co
+    const showSettings = ref(false)
+    const showToc = ref(false)
+    const isFullscreen = ref(false)
 
     
     // 阅读状态

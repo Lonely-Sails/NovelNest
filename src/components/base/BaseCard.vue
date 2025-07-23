@@ -105,7 +105,7 @@ export default {
 
 .card-selected {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+  box-shadow: 0 0 0 2px var(--primary-color-light);
 }
 
 .card-compact .card-header,

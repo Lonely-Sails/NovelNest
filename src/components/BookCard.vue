@@ -167,9 +167,9 @@ export default {
   justify-content: center;
   background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
   color: white;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-size: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .book-format-badge {

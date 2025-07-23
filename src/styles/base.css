@@ -1,0 +1,465 @@
+/* 基础样式 - 全局重置和基础类 */
+
+/* 全局重置 */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+html {
+    height: 100%;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    background-color: var(--bg-secondary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: color var(--transition-normal), background-color var(--transition-normal);
+}
+
+body::after {
+    content: '';
+    width: 100%;
+    height: 5px;
+    position: fixed;
+    top: -5px;
+    left: 0;
+    box-shadow: 0 0 5px rgba(0, 0, 0, .5);
+    display: block;
+    z-index: 1000;
+}
+
+/* 链接样式 */
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+a:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+/* 按钮重置 */
+button {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    margin: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+/* 输入框样式 */
+input,
+textarea,
+select {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    color: var(--text-primary);
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.75rem;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-color-light);
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: var(--bg-secondary);
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Firefox 滚动条 */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) var(--bg-secondary);
+}
+
+/* 选择文本样式 */
+::selection {
+    background-color: var(--primary-color-light);
+    color: var(--primary-color);
+}
+
+/* 焦点样式 */
+:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* 图片样式 */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* 表格样式 */
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th,
+td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+th {
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    background-color: var(--bg-secondary);
+}
+
+/* 代码样式 */
+code,
+pre {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9em;
+}
+
+code {
+    padding: 0.125rem 0.25rem;
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+}
+
+pre {
+    padding: 1rem;
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+    line-height: 1.4;
+}
+
+pre code {
+    padding: 0;
+    background: none;
+}
+
+/* 引用样式 */
+blockquote {
+    padding: 1rem;
+    margin: 1rem 0;
+    border-left: 4px solid var(--primary-color);
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+}
+
+/* 分割线样式 */
+hr {
+    border: none;
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 2rem 0;
+}
+
+/* 列表样式 */
+ul,
+ol {
+    padding-left: 1.5rem;
+}
+
+li {
+    margin-bottom: 0.25rem;
+}
+
+/* 标题样式 */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-weight: var(--font-semibold);
+    line-height: var(--line-height-tight);
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+h1 {
+    font-size: var(--font-3xl);
+}
+
+h2 {
+    font-size: var(--font-2xl);
+}
+
+h3 {
+    font-size: var(--font-xl);
+}
+
+h4 {
+    font-size: var(--font-lg);
+}
+
+h5 {
+    font-size: var(--font-md);
+}
+
+h6 {
+    font-size: var(--font-sm);
+}
+
+/* 段落样式 */
+p {
+    margin-bottom: 1rem;
+    line-height: var(--line-height-normal);
+}
+
+/* 强调样式 */
+strong,
+b {
+    font-weight: var(--font-bold);
+}
+
+em,
+i {
+    font-style: italic;
+}
+
+/* 小文本样式 */
+small {
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+}
+
+/* 标记样式 */
+mark {
+    background-color: var(--warning-bg);
+    color: var(--warning-color);
+    padding: 0.125rem 0.25rem;
+    border-radius: var(--radius-sm);
+}
+
+/* 删除线样式 */
+del {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+/* 下划线样式 */
+ins {
+    text-decoration: underline;
+    color: var(--success-color);
+}
+
+/* 上标和下标 */
+sup,
+sub {
+    font-size: 0.75em;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+}
+
+sup {
+    top: -0.5em;
+}
+
+sub {
+    bottom: -0.25em;
+}
+
+/* 键盘按键样式 */
+kbd {
+    display: inline-block;
+    padding: 0.125rem 0.25rem;
+    font-size: 0.8em;
+    color: var(--text-primary);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 1px 0 var(--border-color);
+    font-family: monospace;
+}
+
+/* 缩写样式 */
+abbr[title] {
+    text-decoration: underline dotted;
+    cursor: help;
+}
+
+/* 地址样式 */
+address {
+    font-style: normal;
+    line-height: inherit;
+}
+
+/* 详情和摘要样式 */
+details {
+    margin-bottom: 1rem;
+}
+
+summary {
+    cursor: pointer;
+    font-weight: var(--font-medium);
+    margin-bottom: 0.5rem;
+}
+
+/* 进度条样式 */
+progress {
+    width: 100%;
+    height: 0.5rem;
+    border: none;
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-secondary);
+    overflow: hidden;
+}
+
+progress::-webkit-progress-bar {
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+}
+
+progress::-webkit-progress-value {
+    background-color: var(--primary-color);
+    border-radius: var(--radius-sm);
+}
+
+progress::-moz-progress-bar {
+    background-color: var(--primary-color);
+    border-radius: var(--radius-sm);
+}
+
+/* 仪表样式 */
+meter {
+    width: 100%;
+    height: 0.5rem;
+    border: none;
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-secondary);
+}
+
+meter::-webkit-meter-bar {
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+}
+
+meter::-webkit-meter-optimum-value {
+    background-color: var(--success-color);
+    border-radius: var(--radius-sm);
+}
+
+meter::-webkit-meter-suboptimum-value {
+    background-color: var(--warning-color);
+    border-radius: var(--radius-sm);
+}
+
+meter::-webkit-meter-even-less-good-value {
+    background-color: var(--error-color);
+    border-radius: var(--radius-sm);
+}
+
+/* 字段集样式 */
+fieldset {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+legend {
+    padding: 0 0.5rem;
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+}
+
+/* 打印样式 */
+@media print {
+    * {
+        background: transparent !important;
+        color: black !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+
+    a,
+    a:visited {
+        text-decoration: underline;
+    }
+
+    abbr[title]:after {
+        content: " (" attr(title) ")";
+    }
+
+    pre,
+    blockquote {
+        border: 1px solid #999;
+        page-break-inside: avoid;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+
+    tr,
+    img {
+        page-break-inside: avoid;
+    }
+
+    img {
+        max-width: 100% !important;
+    }
+
+    p,
+    h2,
+    h3 {
+        orphans: 3;
+        widows: 3;
+    }
+
+    h2,
+    h3 {
+        page-break-after: avoid;
+    }
+}
