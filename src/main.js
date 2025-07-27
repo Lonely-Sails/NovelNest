@@ -3,8 +3,8 @@ import { pinia } from './stores/index.js';
 import { useSettingsStore } from './stores/settingsStore.js';
 import router from './router/index.js';
 import App from './App.vue';
-import Toast from './components/Toast.vue';
-import baseComponents from './plugins/baseComponents.js';
+
+import { registerGlobalComponents } from './plugins/components.js';
 
 // 引入基础样式和变量
 import './styles/base.css'
@@ -22,10 +22,9 @@ settingsStore.initializeSettings();
 // 使用路由
 app.use(router);
 
-// 注册基础组件
-app.use(baseComponents);
+// 注册全局组件
+registerGlobalComponents(app);
 
-// 全局注册 Toast 组件
-app.component('Toast', Toast);
+// Toast组件已在components.js中全局注册
 
 app.mount("#app");

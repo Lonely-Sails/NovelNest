@@ -278,16 +278,10 @@
 
     <!-- 图书导入器 -->
     <Modal v-if="showBookImporter" @close="closeImporter" title="导入图书" size="large">
-      <BookImporter 
-        :on-import-complete="handleImportComplete"
-        @import-complete="handleImportComplete"
-        @import-start="handleImportStart"
-        @import-progress="handleImportProgress"
-      />
+      <UnifiedBookImporter @import-complete="handleImportComplete" />
     </Modal>
 
-    <!-- Toast 提示 -->
-    <Toast v-if="toast.show" :message="toast.message" :type="toast.type" @close="hideToast" />
+
   </div>
 </template>
 
@@ -295,29 +289,24 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBookStore } from '@/stores/bookStore'
+import { useToast } from '@/composables/useToast'
 import { invoke } from '@tauri-apps/api/core'
-import { open, save } from '@tauri-apps/plugin-dialog'
 import BookCard from '@/components/BookCard.vue'
-import BookImporter from '@/components/BookImporter.vue'
 import SearchBar from '@/components/SearchBar.vue'
-import Modal from '@/components/Modal.vue'
-import Loading from '@/components/Loading.vue'
-import Toast from '@/components/Toast.vue'
-// 基础组件已全局注册，无需导入
+import UnifiedBookImporter from '@/components/UnifiedBookImporter.vue'
+// 全局注册的组件无需导入：Modal, Toast, Loading, BaseButton等
 
 export default {
   name: 'LibraryView',
   components: {
     BookCard,
-    BookImporter,
     SearchBar,
-    Modal,
-    Loading,
-    Toast
+    UnifiedBookImporter
   },
   setup() {
     const router = useRouter()
     const bookStore = useBookStore()
+    const { toastState, showSuccess, showError, showWarning, showInfo, hideToast } = useToast()
 
     // 响应式数据
     const searchQuery = ref('')
@@ -349,12 +338,7 @@ export default {
       progress: 0
     })
 
-    // Toast 状态
-    const toast = ref({
-      show: false,
-      message: '',
-      type: 'info'
-    })
+
 
     // 计算属性
     const loading = computed(() => bookStore.loading)
@@ -434,16 +418,6 @@ export default {
     })
 
     // 方法
-    const showToast = (message, type = 'info') => {
-      toast.value = { show: true, message, type }
-      setTimeout(() => {
-        toast.value.show = false
-      }, 3000)
-    }
-
-    const hideToast = () => {
-      toast.value.show = false
-    }
 
     const handleSearch = async (query) => {
       searchLoading.value = true
@@ -451,7 +425,7 @@ export default {
         await bookStore.searchBooks(query)
       } catch (error) {
         console.error('搜索失败:', error)
-        showToast('搜索失败，请重试', 'error')
+        showError('搜索失败，请重试')
       } finally {
         searchLoading.value = false
       }
@@ -481,27 +455,18 @@ export default {
     const handleImportComplete = async (result) => {
       if (result.success > 0) {
         await bookStore.loadBooks() // 刷新图书列表
-        showToast(`成功导入 ${result.success} 本图书${result.error > 0 ? `，${result.error} 个失败` : ''}`, 'success')
+        showSuccess(`成功导入 ${result.success} 本图书${result.error > 0 ? `，${result.error} 个失败` : ''}`)
       }
       closeImporter()
-    }
-
-    const handleImportStart = (data) => {
-      showToast(`开始导入 ${data.files.length} 个文件`, 'info')
-    }
-
-    const handleImportProgress = (data) => {
-      // 可以在这里显示进度信息
-      console.log(`导入进度: ${data.current}/${data.total} - ${data.file}`)
     }
 
     const refreshLibrary = async () => {
       try {
         await bookStore.loadBooks()
-        showToast('图书库已刷新', 'success')
+        showSuccess('图书库已刷新')
       } catch (error) {
         console.error('刷新图书库失败:', error)
-        showToast('刷新失败: ' + error.message, 'error')
+        showError('刷新失败: ' + error.message)
       }
     }
 
@@ -596,11 +561,11 @@ export default {
           books.value[bookIndex] = updatedBook
         }
 
-        showToast('图书信息更新成功', 'success')
+        showSuccess('图书信息更新成功')
         closeEditModal()
       } catch (error) {
         console.error('保存图书信息失败:', error)
-        showToast('保存图书信息失败: ' + error.message, 'error')
+        showError('保存图书信息失败: ' + error.message)
       } finally {
         saving.value = false
       }
@@ -612,10 +577,10 @@ export default {
       try {
         await bookStore.updateReadingProgress(selectedBook.value.id, 0)
         selectedBook.value.reading_progress = 0
-        showToast('阅读进度已重置', 'success')
+        showSuccess('阅读进度已重置')
       } catch (error) {
         console.error('重置进度失败:', error)
-        showToast('重置进度失败: ' + error.message, 'error')
+        showError('重置进度失败: ' + error.message)
       }
     }
 
@@ -625,10 +590,10 @@ export default {
       try {
         await bookStore.updateReadingProgress(selectedBook.value.id, 1)
         selectedBook.value.reading_progress = 1
-        showToast('已标记为已读', 'success')
+        showSuccess('已标记为已读')
       } catch (error) {
         console.error('标记完成失败:', error)
-        showToast('标记完成失败: ' + error.message, 'error')
+        showError('标记完成失败: ' + error.message)
       }
     }
 
@@ -636,10 +601,10 @@ export default {
       try {
         await invoke('delete_bookmark', { bookmarkId })
         bookmarks.value = bookmarks.value.filter(b => b.id !== bookmarkId)
-        showToast('书签删除成功', 'success')
+        showSuccess('书签删除成功')
       } catch (error) {
         console.error('删除书签失败:', error)
-        showToast('删除书签失败: ' + error.message, 'error')
+        showError('删除书签失败: ' + error.message)
       }
     }
 
@@ -659,11 +624,11 @@ export default {
       deleting.value = true
       try {
         await bookStore.deleteBook(bookToDelete.value.id)
-        showToast('图书删除成功', 'success')
+        showSuccess('图书删除成功')
         cancelDelete()
       } catch (error) {
         console.error('删除图书失败:', error)
-        showToast('删除图书失败: ' + error.message, 'error')
+        showError('删除图书失败: ' + error.message)
       } finally {
         deleting.value = false
       }
@@ -713,11 +678,8 @@ export default {
 
     // 监听搜索查询变化
     watch(searchQuery, (newQuery) => {
-      if (newQuery) {
-        handleSearch(newQuery)
-      } else {
-        bookStore.clearSearch()
-      }
+      if (newQuery) handleSearch(newQuery)
+      else bookStore.clearSearch()
     }, { debounce: 300 })
 
     // 组件挂载时加载数据
@@ -726,7 +688,7 @@ export default {
         await bookStore.loadBooks()
       } catch (error) {
         console.error('加载图书失败:', error)
-        showToast('加载图书失败，请刷新页面重试', 'error')
+        showError('加载图书失败，请刷新页面重试')
       }
     })
 
@@ -750,7 +712,6 @@ export default {
       readingHistory,
       bookmarks,
       editForm,
-      toast,
 
       // 计算属性
       loading,
@@ -759,8 +720,6 @@ export default {
       displayBooks,
 
       // 方法
-      showToast,
-      hideToast,
       handleSearch,
       handleClearSearch,
       applyFilters,
@@ -768,8 +727,6 @@ export default {
       showImporter,
       closeImporter,
       handleImportComplete,
-      handleImportStart,
-      handleImportProgress,
       refreshLibrary,
       openBook,
       editBook,

@@ -373,7 +373,13 @@ impl DatabaseManager {
 
     /// 获取图书的所有书签
     pub fn get_bookmarks(&self, book_id: &str) -> AppResult<Vec<Bookmark>> {
+        // 添加输入验证
+        if book_id.is_empty() {
+            return Err(AppError::Generic("book_id 不能为空".to_string()));
+        }
+
         let conn = self.connection.lock().map_err(|e| {
+            eprintln!("获取数据库锁失败: {}", e);
             AppError::Generic(format!("Failed to acquire database lock: {}", e))
         })?;
 
@@ -382,28 +388,59 @@ impl DatabaseManager {
             SELECT id, book_id, position, chapter_index, note, created_at
             FROM bookmarks WHERE book_id = ?1 ORDER BY position
             "#,
-        )?;
+        ).map_err(|e| {
+            eprintln!("准备SQL语句失败: {}", e);
+            e
+        })?;
 
         let bookmark_iter = stmt.query_map([book_id], |row| {
+            // 安全地获取每个字段
+            let id: i64 = row.get(0)?;
+            let book_id: String = row.get(1)?;
+            let position: i64 = row.get(2)?;
+            let chapter_index: Option<i32> = row.get(3)?;
+            let note: Option<String> = row.get(4)?;
             let created_at_str: String = row.get(5)?;
 
-            Ok(Bookmark {
-                id: row.get(0)?,
-                book_id: row.get(1)?,
-                position: row.get(2)?,
-                chapter_index: row.get(3)?,
-                note: row.get(4)?,
-                created_at: DateTime::parse_from_rfc3339(&created_at_str)
-                    .map_err(|e| rusqlite::Error::InvalidColumnType(5, "created_at".to_string(), rusqlite::types::Type::Text))?
-                    .with_timezone(&Utc),
-            })
+            // 安全地解析时间戳
+            let created_at = match DateTime::parse_from_rfc3339(&created_at_str) {
+                Ok(dt) => dt.with_timezone(&Utc),
+                Err(e) => {
+                    eprintln!("解析书签时间戳失败: {} -> {}", created_at_str, e);
+                    Utc::now()
+                }
+            };
+
+            let bookmark = Bookmark {
+                id,
+                book_id,
+                position,
+                chapter_index,
+                note,
+                created_at,
+            };
+
+            Ok(bookmark)
+        }).map_err(|e| {
+            eprintln!("执行查询失败: {}", e);
+            e
         })?;
 
         let mut bookmarks = Vec::new();
-        for bookmark in bookmark_iter {
-            bookmarks.push(bookmark?);
+        for bookmark_result in bookmark_iter {
+            match bookmark_result {
+                Ok(bookmark) => {
+                    bookmarks.push(bookmark);
+                }
+                Err(e) => {
+                    eprintln!("解析书签数据失败: {}", e);
+                    // 继续处理其他书签，不因单个书签错误而中断
+                    continue;
+                }
+            }
         }
 
+        println!("成功加载 {} 个书签 for book_id: {}", bookmarks.len(), book_id);
         Ok(bookmarks)
     }
 

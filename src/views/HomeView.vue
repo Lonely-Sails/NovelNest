@@ -84,10 +84,15 @@
 
 <script>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useToast } from '@/composables/useToast'
 
 export default {
   name: 'HomeView',
   setup() {
+    const router = useRouter()
+    const { showInfo } = useToast()
+    
     const totalBooks = ref(0)
     const readingBooks = ref(0)
     const completedBooks = ref(0)
@@ -138,17 +143,12 @@ export default {
     }
 
     const importBook = async () => {
-      try {
-        // 这个命令将在后续任务中实现
-        // await invoke('import_book')
-        alert('图书导入功能将在后续版本中实现')
-      } catch (error) {
-        console.error('导入图书失败:', error)
-      }
+      router.push('/library')
+      showInfo('请在图书库页面使用导入功能')
     }
 
     const openBook = (book) => {
-      this.$router.push(`/reader/${book.id}`)
+      router.push(`/reader/${book.id}`)
     }
 
     const getProgressVariant = (progress) => {

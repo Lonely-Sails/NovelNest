@@ -1,180 +1,253 @@
 <template>
   <Teleport to="body">
-    <div class="toast-container">
-      <Transition
-        v-for="toast in toasts"
-        :key="toast.id"
-        name="toast"
-        appear
+    <Transition name="toast" appear>
+      <div 
+        v-if="show" 
+        class="toast-container"
+        :class="[`toast-${type}`, `toast-${position}`]"
       >
-        <BaseCard
-          class="toast"
-          :class="[`toast-${toast.type}`, { 'toast-closable': toast.closable }]"
-        >
-          <template #header>
-            <div class="toast-header">
-              <BaseBadge 
-                :variant="toast.type === 'error' ? 'error' : toast.type === 'success' ? 'success' : toast.type === 'warning' ? 'warning' : 'info'"
-                :icon="getIcon(toast.type)"
-                size="small"
-              >
-                {{ toast.title || getTypeText(toast.type) }}
-              </BaseBadge>
-              <BaseButton
-                v-if="toast.closable"
-                @click="removeToast(toast.id)"
-                variant="ghost"
-                size="small"
-                icon="✕"
-              />
-            </div>
-          </template>
+        <div class="toast-content">
+          <!-- 图标 -->
+          <div class="toast-icon">
+            <span v-if="type === 'success'">✅</span>
+            <span v-else-if="type === 'error'">❌</span>
+            <span v-else-if="type === 'warning'">⚠️</span>
+            <span v-else>ℹ️</span>
+          </div>
           
-          <div class="toast-message">{{ toast.message }}</div>
-        </BaseCard>
-      </Transition>
-    </div>
+          <!-- 消息内容 -->
+          <div class="toast-message">
+            {{ message }}
+          </div>
+          
+          <!-- 关闭按钮 -->
+          <button 
+            v-if="closable" 
+            class="toast-close"
+            @click="$emit('close')"
+          >
+            ✕
+          </button>
+        </div>
+        
+        <!-- 进度条 -->
+        <div 
+          v-if="showProgress" 
+          class="toast-progress"
+          :style="{ animationDuration: duration + 'ms' }"
+        ></div>
+      </div>
+    </Transition>
   </Teleport>
 </template>
 
-<script>
-import { ref, onMounted } from 'vue'
+<script setup>
+import { onMounted, onUnmounted } from 'vue'
 
-// 全局 toast 状态
-const toasts = ref([])
-let toastId = 0
-
-// Toast 管理器
-export const useToast = () => {
-  const addToast = (options) => {
-    const toast = {
-      id: ++toastId,
-      type: 'info',
-      title: '',
-      message: '',
-      duration: 3000,
-      closable: true,
-      ...options
-    }
-
-    toasts.value.push(toast)
-
-    // 自动移除
-    if (toast.duration > 0) {
-      setTimeout(() => {
-        removeToast(toast.id)
-      }, toast.duration)
-    }
-
-    return toast.id
+// Props
+const props = defineProps({
+  message: {
+    type: String,
+    required: true
+  },
+  type: {
+    type: String,
+    default: 'info', // 'success', 'error', 'warning', 'info'
+    validator: (value) => ['success', 'error', 'warning', 'info'].includes(value)
+  },
+  duration: {
+    type: Number,
+    default: 3000
+  },
+  position: {
+    type: String,
+    default: 'top-right', // 'top-left', 'top-right', 'bottom-left', 'bottom-right', 'top-center', 'bottom-center'
+    validator: (value) => [
+      'top-left', 'top-right', 'bottom-left', 
+      'bottom-right', 'top-center', 'bottom-center'
+    ].includes(value)
+  },
+  closable: {
+    type: Boolean,
+    default: true
+  },
+  showProgress: {
+    type: Boolean,
+    default: true
+  },
+  show: {
+    type: Boolean,
+    default: true
   }
+})
 
-  const removeToast = (id) => {
-    const index = toasts.value.findIndex(toast => toast.id === id)
-    if (index > -1) {
-      toasts.value.splice(index, 1)
-    }
+// Emits
+const emit = defineEmits(['close'])
+
+// 自动关闭定时器
+let autoCloseTimer = null
+
+// 组件挂载时设置自动关闭
+onMounted(() => {
+  if (props.duration > 0) {
+    autoCloseTimer = setTimeout(() => {
+      emit('close')
+    }, props.duration)
   }
+})
 
-  const clearToasts = () => {
-    toasts.value = []
+// 组件卸载时清除定时器
+onUnmounted(() => {
+  if (autoCloseTimer) {
+    clearTimeout(autoCloseTimer)
   }
-
-  // 便捷方法
-  const success = (message, options = {}) => {
-    return addToast({ ...options, type: 'success', message })
-  }
-
-  const error = (message, options = {}) => {
-    return addToast({ ...options, type: 'error', message, duration: 5000 })
-  }
-
-  const warning = (message, options = {}) => {
-    return addToast({ ...options, type: 'warning', message })
-  }
-
-  const info = (message, options = {}) => {
-    return addToast({ ...options, type: 'info', message })
-  }
-
-  return {
-    addToast,
-    removeToast,
-    clearToasts,
-    success,
-    error,
-    warning,
-    info
-  }
-}
-
-export default {
-  name: 'Toast',
-  setup() {
-    const { removeToast } = useToast()
-
-    const getIcon = (type) => {
-      const icons = {
-        success: '✅',
-        error: '❌',
-        warning: '⚠️',
-        info: 'ℹ️'
-      }
-      return icons[type] || icons.info
-    }
-
-    const getTypeText = (type) => {
-      const texts = {
-        success: '成功',
-        error: '错误',
-        warning: '警告',
-        info: '信息'
-      }
-      return texts[type] || texts.info
-    }
-
-    return {
-      toasts,
-      removeToast,
-      getIcon,
-      getTypeText
-    }
-  }
-}
+})
 </script>
 
 <style scoped>
 .toast-container {
   position: fixed;
-  top: 1rem;
-  right: 1rem;
-  z-index: var(--z-toast);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  z-index: 9999;
   max-width: 400px;
-}
-
-.toast {
   min-width: 300px;
-  box-shadow: var(--shadow-lg);
+  margin: 1rem;
+  pointer-events: auto;
 }
 
-.toast-header {
+/* 位置样式 */
+.toast-top-left {
+  top: 0;
+  left: 0;
+}
+
+.toast-top-right {
+  top: 0;
+  right: 0;
+}
+
+.toast-bottom-left {
+  bottom: 0;
+  left: 0;
+}
+
+.toast-bottom-right {
+  bottom: 0;
+  right: 0;
+}
+
+.toast-top-center {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.toast-bottom-center {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.toast-content {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 类型样式 */
+.toast-success .toast-content {
+  border-left: 4px solid #10b981;
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.toast-error .toast-content {
+  border-left: 4px solid #ef4444;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.toast-warning .toast-content {
+  border-left: 4px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.toast-info .toast-content {
+  border-left: 4px solid #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.toast-icon {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+  line-height: 1;
 }
 
 .toast-message {
+  flex: 1;
   color: var(--text-primary);
   font-size: 0.9rem;
   line-height: 1.4;
-  margin-top: 0.5rem;
+  word-break: break-word;
 }
 
-/* 动画效果 */
+.toast-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  transition: color 0.2s ease;
+}
+
+.toast-close:hover {
+  color: var(--text-primary);
+}
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: currentColor;
+  animation: toastProgress linear forwards;
+  opacity: 0.6;
+}
+
+.toast-success .toast-progress {
+  color: #10b981;
+}
+
+.toast-error .toast-progress {
+  color: #ef4444;
+}
+
+.toast-warning .toast-progress {
+  color: #f59e0b;
+}
+
+.toast-info .toast-progress {
+  color: #3b82f6;
+}
+
+/* 动画 */
+@keyframes toastProgress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+/* 过渡动画 */
 .toast-enter-active,
 .toast-leave-active {
   transition: all 0.3s ease;
@@ -190,18 +263,44 @@ export default {
   transform: translateX(100%);
 }
 
-/* 响应式设计 */
-@media (max-width: 640px) {
-  .toast-container {
-    left: 1rem;
-    right: 1rem;
-    max-width: none;
-  }
-  
-  .toast {
-    min-width: auto;
-  }
+/* 左侧位置的动画 */
+.toast-top-left.toast-enter-from,
+.toast-bottom-left.toast-enter-from {
+  transform: translateX(-100%);
 }
 
-/* 暗色主题支持已通过基础组件处理 */
+.toast-top-left.toast-leave-to,
+.toast-bottom-left.toast-leave-to {
+  transform: translateX(-100%);
+}
+
+/* 中心位置的动画 */
+.toast-top-center.toast-enter-from,
+.toast-bottom-center.toast-enter-from {
+  transform: translateX(-50%) translateY(-20px);
+  opacity: 0;
+}
+
+.toast-top-center.toast-leave-to,
+.toast-bottom-center.toast-leave-to {
+  transform: translateX(-50%) translateY(-20px);
+  opacity: 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .toast-container {
+    max-width: calc(100vw - 2rem);
+    min-width: auto;
+    margin: 0.5rem;
+  }
+  
+  .toast-content {
+    padding: 0.75rem;
+  }
+  
+  .toast-message {
+    font-size: 0.85rem;
+  }
+}
 </style>

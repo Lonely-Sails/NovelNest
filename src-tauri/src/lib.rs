@@ -199,11 +199,25 @@ async fn add_bookmark(
     note: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<i64, String> {
-    state
-        .book_manager
-        .add_bookmark(&book_id, position, chapter_index, note)
-        .await
-        .map_err(|e| e.to_string())
+    println!("开始添加书签: book_id={}, position={}, chapter_index={:?}, note={:?}", 
+        book_id, position, chapter_index, note);
+    
+    // 输入验证
+    if book_id.is_empty() {
+        eprintln!("book_id 为空");
+        return Err("book_id 不能为空".to_string());
+    }
+
+    match state.book_manager.add_bookmark(&book_id, position, chapter_index, note).await {
+        Ok(bookmark_id) => {
+            println!("成功添加书签: bookmark_id={}", bookmark_id);
+            Ok(bookmark_id)
+        }
+        Err(e) => {
+            eprintln!("添加书签失败: {}", e);
+            Err(format!("添加书签失败: {}", e))
+        }
+    }
 }
 
 /// 获取图书的所有书签
@@ -212,11 +226,35 @@ async fn get_bookmarks(
     book_id: String,
     state: State<'_, AppState>,
 ) -> Result<Vec<models::Bookmark>, String> {
-    state
-        .book_manager
-        .get_bookmarks(&book_id)
-        .await
-        .map_err(|e| e.to_string())
+    println!("开始获取书签: book_id={}", book_id);
+    
+    // 输入验证
+    if book_id.is_empty() {
+        eprintln!("book_id 为空");
+        return Err("book_id 不能为空".to_string());
+    }
+
+    // 添加超时机制，避免长时间阻塞
+    let timeout_duration = std::time::Duration::from_secs(10);
+    
+    match tokio::time::timeout(timeout_duration, state.book_manager.get_bookmarks(&book_id)).await {
+        Ok(result) => {
+            match result {
+                Ok(bookmarks) => {
+                    println!("成功获取 {} 个书签", bookmarks.len());
+                    Ok(bookmarks)
+                }
+                Err(e) => {
+                    eprintln!("获取书签失败: {}", e);
+                    Err(format!("获取书签失败: {}", e))
+                }
+            }
+        }
+        Err(_) => {
+            eprintln!("获取书签超时: book_id={}", book_id);
+            Err("获取书签超时，请重试".to_string())
+        }
+    }
 }
 
 /// 删除书签
@@ -245,11 +283,18 @@ async fn get_book_chapters(
     book_id: String,
     state: State<'_, AppState>,
 ) -> Result<Vec<models::BookChapter>, String> {
-    state
-        .book_manager
-        .get_book_chapters(&book_id)
-        .await
-        .map_err(|e| e.to_string())
+    // 添加超时机制，避免长时间阻塞
+    let timeout_duration = std::time::Duration::from_secs(30);
+
+    match tokio::time::timeout(
+        timeout_duration,
+        state.book_manager.get_book_chapters(&book_id),
+    )
+    .await
+    {
+        Ok(result) => result.map_err(|e| e.to_string()),
+        Err(_) => Err("获取章节列表超时，请检查文件是否过大或损坏".to_string()),
+    }
 }
 
 /// 获取指定章节内容
@@ -286,22 +331,26 @@ async fn get_paginated_content(
 async fn scan_folder_for_books(folder_path: String) -> Result<Vec<String>, String> {
     use std::fs;
     use std::path::Path;
-    
+
     let folder = Path::new(&folder_path);
     if !folder.exists() || !folder.is_dir() {
         return Err("文件夹不存在或不是有效目录".to_string());
     }
-    
+
     let supported_extensions = ["txt", "epub", "pdf", "mobi", "azw3"];
     let mut book_files = Vec::new();
-    
-    fn scan_directory(dir: &Path, files: &mut Vec<String>, extensions: &[&str]) -> Result<(), String> {
+
+    fn scan_directory(
+        dir: &Path,
+        files: &mut Vec<String>,
+        extensions: &[&str],
+    ) -> Result<(), String> {
         let entries = fs::read_dir(dir).map_err(|e| format!("读取目录失败: {}", e))?;
-        
+
         for entry in entries {
             let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
             let path = entry.path();
-            
+
             if path.is_dir() {
                 // 递归扫描子目录
                 scan_directory(&path, files, extensions)?;
@@ -315,13 +364,13 @@ async fn scan_folder_for_books(folder_path: String) -> Result<Vec<String>, Strin
                 }
             }
         }
-        
+
         Ok(())
     }
-    
+
     scan_directory(folder, &mut book_files, &supported_extensions)
         .map_err(|e| format!("扫描文件夹失败: {}", e))?;
-    
+
     Ok(book_files)
 }
 
@@ -330,24 +379,26 @@ async fn scan_folder_for_books(folder_path: String) -> Result<Vec<String>, Strin
 async fn get_file_info(file_path: String) -> Result<models::FileInfo, String> {
     use std::fs;
     use std::path::Path;
-    
+
     let path = Path::new(&file_path);
     if !path.exists() {
         return Err("文件不存在".to_string());
     }
-    
+
     let metadata = fs::metadata(path).map_err(|e| format!("获取文件信息失败: {}", e))?;
-    
-    let name = path.file_name()
+
+    let name = path
+        .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or("未知文件")
         .to_string();
-    
-    let extension = path.extension()
+
+    let extension = path
+        .extension()
         .and_then(|ext| ext.to_str())
         .unwrap_or("")
         .to_string();
-    
+
     Ok(models::FileInfo {
         name,
         size: metadata.len(),
@@ -355,8 +406,13 @@ async fn get_file_info(file_path: String) -> Result<models::FileInfo, String> {
         path: file_path,
         is_file: metadata.is_file(),
         is_dir: metadata.is_dir(),
-        modified: metadata.modified()
-            .map(|time| time.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs())
+        modified: metadata
+            .modified()
+            .map(|time| {
+                time.duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs()
+            })
             .unwrap_or(0),
     })
 }
@@ -369,7 +425,7 @@ async fn check_book_exists(file_path: String, state: State<'_, AppState>) -> Res
         .get_all_books()
         .await
         .map_err(|e| e.to_string())?;
-    
+
     let exists = books.iter().any(|book| book.file_path == file_path);
     Ok(exists)
 }
@@ -385,10 +441,10 @@ async fn batch_import_books(
     let mut success_count = 0;
     let mut error_count = 0;
     let mut skipped_count = 0;
-    
+
     for file_path in file_paths {
         let path = std::path::PathBuf::from(&file_path);
-        
+
         // 检查是否已存在
         if skip_existing {
             let exists = check_book_exists(file_path.clone(), state.clone()).await?;
@@ -403,7 +459,7 @@ async fn batch_import_books(
                 continue;
             }
         }
-        
+
         // 尝试导入
         match state.book_manager.import_book(path).await {
             Ok(book) => {
@@ -426,7 +482,7 @@ async fn batch_import_books(
             }
         }
     }
-    
+
     Ok(models::BatchImportResult {
         total: results.len(),
         success: success_count,
@@ -573,7 +629,7 @@ async fn open_window(router: String, app: tauri::AppHandle) -> Result<(), String
         let _ = tauri::WebviewWindowBuilder::new(
             &app,
             &router,
-            tauri::WebviewUrl::App(format!("/?router={}", router).into())
+            tauri::WebviewUrl::App(format!("/?router={}", router).into()),
         )
         .title("设置 - NovelNest")
         .inner_size(900.0, 700.0)
@@ -582,7 +638,7 @@ async fn open_window(router: String, app: tauri::AppHandle) -> Result<(), String
         .build()
         .map_err(|e| e.to_string())?;
     }
-    
+
     Ok(())
 }
 
@@ -917,6 +973,23 @@ fn initialize_app_state() -> AppResult<AppState> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // 设置 panic hook 来捕获崩溃信息
+    std::panic::set_hook(Box::new(|panic_info| {
+        eprintln!("应用崩溃！");
+        eprintln!("崩溃位置: {:?}", panic_info.location());
+        eprintln!("崩溃信息: {:?}", panic_info.payload().downcast_ref::<&str>());
+        
+        // 尝试获取更多信息
+        if let Some(s) = panic_info.payload().downcast_ref::<String>() {
+            eprintln!("崩溃详情: {}", s);
+        }
+        
+        // 打印调用栈
+        eprintln!("调用栈:");
+        let backtrace = std::backtrace::Backtrace::capture();
+        eprintln!("{}", backtrace);
+    }));
+
     // 创建 Tokio 运行时
     let runtime = tokio::runtime::Runtime::new().expect("无法创建 Tokio 运行时");
     let runtime_handle = runtime.handle().clone();

@@ -31,9 +31,7 @@ impl BookManager {
         let extension = file_path
             .extension()
             .and_then(|ext| ext.to_str())
-            .ok_or_else(|| {
-                BookError::UnsupportedFormat("无法确定文件格式".to_string())
-            })?;
+            .ok_or_else(|| BookError::UnsupportedFormat("无法确定文件格式".to_string()))?;
 
         let format = BookFormat::from_extension(extension).ok_or_else(|| {
             BookError::UnsupportedFormat(format!("不支持的文件格式: {}", extension))
@@ -183,16 +181,26 @@ impl BookManager {
 
         for line in lines {
             let line = line.trim();
-            
+
             // 常见的作者标识模式
             if line.starts_with("作者：") || line.starts_with("作者:") {
-                return Some(line.replace("作者：", "").replace("作者:", "").trim().to_string());
+                return Some(
+                    line.replace("作者：", "")
+                        .replace("作者:", "")
+                        .trim()
+                        .to_string(),
+                );
             }
-            
+
             if line.starts_with("Author:") || line.starts_with("author:") {
-                return Some(line.replace("Author:", "").replace("author:", "").trim().to_string());
+                return Some(
+                    line.replace("Author:", "")
+                        .replace("author:", "")
+                        .trim()
+                        .to_string(),
+                );
             }
-            
+
             // 检查是否包含"著"字
             if line.contains("著") && line.len() < 50 {
                 // 简单的启发式规则：如果行很短且包含"著"，可能是作者信息
@@ -204,10 +212,12 @@ impl BookManager {
     }
 
     /// 提取EPUB文件元数据
-    async fn extract_epub_metadata(&self, file_path: &Path) -> BookResult<(String, Option<String>)> {
-        let doc = epub::doc::EpubDoc::new(file_path).map_err(|e| {
-            BookError::ParseError(format!("EPUB文件解析失败: {}", e))
-        })?;
+    async fn extract_epub_metadata(
+        &self,
+        file_path: &Path,
+    ) -> BookResult<(String, Option<String>)> {
+        let doc = epub::doc::EpubDoc::new(file_path)
+            .map_err(|e| BookError::ParseError(format!("EPUB文件解析失败: {}", e)))?;
 
         let title = doc
             .mdata("title")
@@ -306,9 +316,11 @@ impl BookManager {
             .into_iter()
             .filter(|book| book.last_read.is_some())
             .collect();
-        
+
         recently_read.sort_by(|a, b| {
-            b.last_read.unwrap_or_default().cmp(&a.last_read.unwrap_or_default())
+            b.last_read
+                .unwrap_or_default()
+                .cmp(&a.last_read.unwrap_or_default())
         });
         recently_read.truncate(limit);
         Ok(recently_read)
@@ -317,7 +329,7 @@ impl BookManager {
     /// 获取图书统计信息
     pub async fn get_library_stats(&self) -> BookResult<LibraryStats> {
         let all_books = self.get_all_books().await?;
-        
+
         let total_books = all_books.len();
         let mut format_counts = std::collections::HashMap::new();
         let mut total_size = 0i64;
@@ -380,7 +392,8 @@ impl BookManager {
         // 验证进度值范围
         if !(0.0..=1.0).contains(&progress) {
             return Err(BookError::InvalidProgress(format!(
-                "阅读进度必须在0.0到1.0之间，当前值: {}", progress
+                "阅读进度必须在0.0到1.0之间，当前值: {}",
+                progress
             )));
         }
 
@@ -396,7 +409,9 @@ impl BookManager {
         if progress_diff >= 0.01 || progress == 1.0 || progress == 0.0 {
             self.db
                 .update_reading_progress(book_id, progress)
-                .map_err(|e| BookError::MetadataExtractionFailed(format!("保存阅读进度失败: {}", e)))?;
+                .map_err(|e| {
+                    BookError::MetadataExtractionFailed(format!("保存阅读进度失败: {}", e))
+                })?;
         }
 
         Ok(())
@@ -431,7 +446,8 @@ impl BookManager {
         // 验证位置参数
         if position < 0 {
             return Err(BookError::InvalidProgress(format!(
-                "书签位置不能为负数: {}", position
+                "书签位置不能为负数: {}",
+                position
             )));
         }
 
@@ -446,7 +462,8 @@ impl BookManager {
         };
 
         // 保存到数据库
-        let bookmark_id = self.db
+        let bookmark_id = self
+            .db
             .insert_bookmark(&bookmark)
             .map_err(|e| BookError::MetadataExtractionFailed(format!("添加书签失败: {}", e)))?;
 
@@ -455,15 +472,10 @@ impl BookManager {
 
     /// 获取图书的所有书签
     pub async fn get_bookmarks(&self, book_id: &str) -> BookResult<Vec<crate::models::Bookmark>> {
-        // 验证图书是否存在
-        let _book = self
+        // 直接获取书签列表，不需要先验证图书是否存在
+        // 如果图书不存在，书签查询会返回空列表，这是合理的行为
+        let bookmarks = self
             .db
-            .get_book_by_id(book_id)
-            .map_err(|e| BookError::MetadataExtractionFailed(format!("获取图书信息失败: {}", e)))?
-            .ok_or_else(|| BookError::NotFound(format!("图书不存在: {}", book_id)))?;
-
-        // 获取书签列表
-        let bookmarks = self.db
             .get_bookmarks(book_id)
             .map_err(|e| BookError::MetadataExtractionFailed(format!("获取书签列表失败: {}", e)))?;
 
@@ -480,10 +492,14 @@ impl BookManager {
     }
 
     /// 快速跳转到书签位置（获取书签详细信息）
-    pub async fn get_bookmark_by_id(&self, bookmark_id: i64) -> BookResult<Option<crate::models::Bookmark>> {
+    pub async fn get_bookmark_by_id(
+        &self,
+        bookmark_id: i64,
+    ) -> BookResult<Option<crate::models::Bookmark>> {
         // 获取所有书签，然后找到指定ID的书签
         // 这里可以优化为直接从数据库查询单个书签
-        let all_bookmarks = self.db
+        let all_bookmarks = self
+            .db
             .get_all_books()
             .map_err(|e| BookError::MetadataExtractionFailed(format!("获取图书列表失败: {}", e)))?;
 
@@ -520,23 +536,40 @@ impl BookManager {
 
     /// 读取TXT文件内容
     async fn read_txt_content(&self, file_path: &Path) -> BookResult<String> {
-        fs::read_to_string(file_path).map_err(|e| {
-            BookError::CorruptedFile(format!("读取TXT文件失败: {}", e))
-        })
+        // 检查文件大小，避免读取过大的文件
+        let metadata = fs::metadata(file_path)
+            .map_err(|e| BookError::CorruptedFile(format!("无法获取文件信息: {}", e)))?;
+
+        let file_size = metadata.len();
+
+        // 如果文件超过50MB，返回错误
+        if file_size > 50 * 1024 * 1024 {
+            return Err(BookError::CorruptedFile(format!(
+                "文件过大 ({:.1}MB)，无法处理。请选择较小的文件。",
+                file_size as f64 / (1024.0 * 1024.0)
+            )));
+        }
+
+        // 使用tokio异步读取文件
+        tokio::fs::read_to_string(file_path)
+            .await
+            .map_err(|e| BookError::CorruptedFile(format!("读取TXT文件失败: {}", e)))
     }
 
     /// 读取EPUB文件内容
     async fn read_epub_content(&self, file_path: &Path) -> BookResult<String> {
-        let mut doc = epub::doc::EpubDoc::new(file_path).map_err(|e| {
-            BookError::ParseError(format!("EPUB文件解析失败: {}", e))
-        })?;
+        let mut doc = epub::doc::EpubDoc::new(file_path)
+            .map_err(|e| BookError::ParseError(format!("EPUB文件解析失败: {}", e)))?;
 
         let mut content = String::new();
 
         // 获取所有章节内容
         for i in 0..doc.get_num_pages() {
             if !doc.set_current_page(i) {
-                return Err(BookError::ChapterParseError(format!("设置EPUB页面失败: {}", i)));
+                return Err(BookError::ChapterParseError(format!(
+                    "设置EPUB页面失败: {}",
+                    i
+                )));
             }
 
             match doc.get_current_str() {
@@ -545,7 +578,10 @@ impl BookManager {
                     content.push('\n');
                 }
                 None => {
-                    return Err(BookError::ChapterParseError(format!("获取EPUB章节内容失败: {}", i)));
+                    return Err(BookError::ChapterParseError(format!(
+                        "获取EPUB章节内容失败: {}",
+                        i
+                    )));
                 }
             }
         }
@@ -555,19 +591,20 @@ impl BookManager {
 
     /// 读取PDF文件内容
     async fn read_pdf_content(&self, file_path: &Path) -> BookResult<String> {
-        let bytes = fs::read(file_path).map_err(|e| {
-            BookError::CorruptedFile(format!("读取PDF文件失败: {}", e))
-        })?;
+        let bytes = fs::read(file_path)
+            .map_err(|e| BookError::CorruptedFile(format!("读取PDF文件失败: {}", e)))?;
 
-        let content = pdf_extract::extract_text_from_mem(&bytes).map_err(|e| {
-            BookError::ParseError(format!("PDF文本提取失败: {}", e))
-        })?;
+        let content = pdf_extract::extract_text_from_mem(&bytes)
+            .map_err(|e| BookError::ParseError(format!("PDF文本提取失败: {}", e)))?;
 
         Ok(content)
     }
 
     /// 获取图书章节列表
-    pub async fn get_book_chapters(&self, book_id: &str) -> BookResult<Vec<crate::models::BookChapter>> {
+    pub async fn get_book_chapters(
+        &self,
+        book_id: &str,
+    ) -> BookResult<Vec<crate::models::BookChapter>> {
         // 获取图书信息
         let book = self
             .db
@@ -576,6 +613,14 @@ impl BookManager {
             .ok_or_else(|| BookError::NotFound(format!("图书不存在: {}", book_id)))?;
 
         let file_path = PathBuf::from(&book.file_path);
+
+        // 检查文件是否存在
+        if !file_path.exists() {
+            return Err(BookError::NotFound(format!(
+                "图书文件不存在: {}",
+                file_path.display()
+            )));
+        }
 
         // 根据格式解析章节
         match book.format {
@@ -586,78 +631,134 @@ impl BookManager {
     }
 
     /// 解析TXT文件章节
-    async fn parse_txt_chapters(&self, file_path: &Path) -> BookResult<Vec<crate::models::BookChapter>> {
+    async fn parse_txt_chapters(
+        &self,
+        file_path: &Path,
+    ) -> BookResult<Vec<crate::models::BookChapter>> {
         let content = self.read_txt_content(file_path).await?;
         let mut chapters = Vec::new();
 
-        // 常见的章节标题模式
-        let chapter_patterns = [
-            r"第[一二三四五六七八九十百千万\d]+章",
-            r"第[一二三四五六七八九十百千万\d]+节",
-            r"Chapter\s+\d+",
-            r"CHAPTER\s+\d+",
-            r"第\d+章",
-            r"第\d+节",
-            r"^\d+\.",
-            r"^\d+、",
+        // 如果文件太大（超过10MB），直接返回单章节避免性能问题
+        if content.len() > 10 * 1024 * 1024 {
+            let char_count = content.chars().count();
+            chapters.push(crate::models::BookChapter {
+                index: 0,
+                title: "全文".to_string(),
+                start_position: 0,
+                end_position: char_count,
+                word_count: char_count,
+            });
+            return Ok(chapters);
+        }
+
+        // 预编译正则表达式模式，避免在循环中重复编译
+        let chapter_regexes = vec![
+            regex::Regex::new(r"第[一二三四五六七八九十百千万\d]+章(.*)")
+                .map_err(|e| BookError::ParseError(format!("正则表达式编译失败: {}", e)))?,
+            regex::Regex::new(r"第[一二三四五六七八九十百千万\d]+节(.*)")
+                .map_err(|e| BookError::ParseError(format!("正则表达式编译失败: {}", e)))?,
+            regex::Regex::new(r"Chapter\s+\d+(.*)")
+                .map_err(|e| BookError::ParseError(format!("正则表达式编译失败: {}", e)))?,
+            regex::Regex::new(r"CHAPTER\s+\d+(.*)")
+                .map_err(|e| BookError::ParseError(format!("正则表达式编译失败: {}", e)))?,
+            regex::Regex::new(r"第\d+章(.*)")
+                .map_err(|e| BookError::ParseError(format!("正则表达式编译失败: {}", e)))?,
+            regex::Regex::new(r"第\d+节(.*)")
+                .map_err(|e| BookError::ParseError(format!("正则表达式编译失败: {}", e)))?,
+            regex::Regex::new(r"^\d+\.(.*)")
+                .map_err(|e| BookError::ParseError(format!("正则表达式编译失败: {}", e)))?,
+            regex::Regex::new(r"^\d+、(.*)")
+                .map_err(|e| BookError::ParseError(format!("正则表达式编译失败: {}", e)))?,
         ];
 
         let lines: Vec<&str> = content.lines().collect();
         let mut chapter_starts = Vec::new();
 
+        // 限制处理的行数，避免处理超大文件时卡死
+        let max_lines = std::cmp::min(lines.len(), 50000);
+
         // 查找章节开始位置
-        for (line_index, line) in lines.iter().enumerate() {
+        for (line_index, line) in lines.iter().enumerate().take(max_lines) {
             let line = line.trim();
-            
+
+            // 跳过空行和过长的行
+            if line.is_empty() || line.len() > 200 {
+                continue;
+            }
+
             // 检查是否匹配章节模式
-            for pattern in &chapter_patterns {
-                if let Ok(regex) = regex::Regex::new(pattern) {
-                    if regex.is_match(line) && line.len() < 100 {
-                        chapter_starts.push((line_index, line.to_string()));
-                        break;
-                    }
+            for regex in &chapter_regexes {
+                if regex.is_match(line) && line.len() < 100 {
+                    chapter_starts.push((line_index, line.to_string()));
+                    break;
                 }
             }
         }
 
         // 如果没有找到章节，创建一个默认章节
         if chapter_starts.is_empty() {
+            let char_count = content.chars().count();
             chapters.push(crate::models::BookChapter {
                 index: 0,
                 title: "全文".to_string(),
                 start_position: 0,
-                end_position: content.len(),
-                word_count: content.chars().count(),
+                end_position: char_count,
+                word_count: char_count,
             });
             return Ok(chapters);
         }
 
+        // 将内容转换为字符数组，用于准确计算字符位置
+        let chars: Vec<char> = content.chars().collect();
+        let total_chars = chars.len();
+
         // 创建章节对象
-        for (i, (line_index, title)) in chapter_starts.iter().enumerate() {
+        for (index, (line_index, title)) in chapter_starts.iter().enumerate() {
             let start_line = *line_index;
-            let end_line = if i + 1 < chapter_starts.len() {
-                chapter_starts[i + 1].0
+            let end_line = if index + 1 < chapter_starts.len() {
+                chapter_starts[index + 1].0
             } else {
                 lines.len()
             };
 
-            let chapter_lines = &lines[start_line..end_line];
-            let chapter_content = chapter_lines.join("\n");
-            
-            let start_pos = if i == 0 {
+            // 计算字符位置而不是字节位置
+            let start_char_pos = if start_line == 0 {
                 0
             } else {
-                lines[..start_line].join("\n").len() + 1
+                // 计算到start_line之前所有行的字符数（包括换行符）
+                lines[..start_line]
+                    .iter()
+                    .map(|line| line.chars().count() + 1)
+                    .sum::<usize>()
             };
-            
-            let end_pos = start_pos + chapter_content.len();
+
+            let end_char_pos = if end_line >= lines.len() {
+                total_chars
+            } else {
+                // 计算到end_line之前所有行的字符数（包括换行符）
+                lines[..end_line]
+                    .iter()
+                    .map(|line| line.chars().count() + 1)
+                    .sum::<usize>()
+            };
+
+            // 确保位置不超出范围
+            let start_position = std::cmp::min(start_char_pos, total_chars);
+            let end_position = std::cmp::min(end_char_pos, total_chars);
+
+            // 计算章节内容的字符数
+            let chapter_char_count = if end_position > start_position {
+                end_position - start_position
+            } else {
+                0
+            };
 
             chapters.push(crate::models::BookChapter {
-                index: i,
+                index,
                 title: title.clone(),
-                start_position: start_pos,
-                end_position: end_pos,
-                word_count: chapter_content.chars().count(),
+                start_position,
+                end_position,
+                word_count: chapter_char_count,
             });
         }
 
@@ -665,10 +766,12 @@ impl BookManager {
     }
 
     /// 解析EPUB文件章节
-    async fn parse_epub_chapters(&self, file_path: &Path) -> BookResult<Vec<crate::models::BookChapter>> {
-        let mut doc = epub::doc::EpubDoc::new(file_path).map_err(|e| {
-            BookError::ParseError(format!("EPUB文件解析失败: {}", e))
-        })?;
+    async fn parse_epub_chapters(
+        &self,
+        file_path: &Path,
+    ) -> BookResult<Vec<crate::models::BookChapter>> {
+        let mut doc = epub::doc::EpubDoc::new(file_path)
+            .map_err(|e| BookError::ParseError(format!("EPUB文件解析失败: {}", e)))?;
 
         let mut chapters = Vec::new();
         let mut current_position = 0;
@@ -680,7 +783,8 @@ impl BookManager {
             }
 
             if let Some((chapter_content, _)) = doc.get_current_str() {
-                let title = doc.get_current_id()
+                let title = doc
+                    .get_current_id()
                     .map(|_id| format!("第{}章", i + 1))
                     .unwrap_or_else(|| format!("第{}章", i + 1));
 
@@ -703,9 +807,12 @@ impl BookManager {
     }
 
     /// 解析PDF文件章节
-    async fn parse_pdf_chapters(&self, file_path: &Path) -> BookResult<Vec<crate::models::BookChapter>> {
+    async fn parse_pdf_chapters(
+        &self,
+        file_path: &Path,
+    ) -> BookResult<Vec<crate::models::BookChapter>> {
         let content = self.read_pdf_content(file_path).await?;
-        
+
         // PDF章节解析比较复杂，这里简化处理
         // 可以根据页面分割或者文本模式识别
         let chapters = vec![crate::models::BookChapter {
@@ -719,6 +826,60 @@ impl BookManager {
         Ok(chapters)
     }
 
+    /// 移除章节内容开头的标题行和空行
+    fn remove_chapter_title(&self, content: &str, title: &str) -> String {
+        let lines: Vec<&str> = content.lines().collect();
+        if lines.is_empty() {
+            return content.to_string();
+        }
+
+        let mut line_index = 0;
+        // 跳过标题行后的所有空行
+        while line_index < lines.len() && lines[line_index].trim().is_empty() {
+            line_index += 1;
+        }
+
+        if lines[line_index].contains(title.trim()) {
+            line_index += 1;
+        }
+
+        while line_index < lines.len() && lines[line_index].trim().is_empty() {
+            line_index += 1;
+        }
+
+        // 返回处理后的内容
+        if line_index < lines.len() {
+            lines[line_index..].join("\n")
+        } else {
+            String::new()
+        }
+    }
+
+    /// 检查是否为章节标题行
+    fn is_chapter_title_line(&self, line: &str) -> bool {
+        let line = line.trim();
+        
+        // 检查常见的章节标题模式
+        let chapter_patterns = vec![
+            regex::Regex::new(r"^第[一二三四五六七八九十百千万\d]+章").unwrap(),
+            regex::Regex::new(r"^第[一二三四五六七八九十百千万\d]+节").unwrap(),
+            regex::Regex::new(r"^Chapter\s+\d+").unwrap(),
+            regex::Regex::new(r"^CHAPTER\s+\d+").unwrap(),
+            regex::Regex::new(r"^第\d+章").unwrap(),
+            regex::Regex::new(r"^第\d+节").unwrap(),
+            regex::Regex::new(r"^\d+\.").unwrap(),
+            regex::Regex::new(r"^\d+、").unwrap(),
+        ];
+
+        for pattern in &chapter_patterns {
+            if pattern.is_match(line) && line.len() < 100 {
+                return true;
+            }
+        }
+
+        false
+    }
+
     /// 获取指定章节内容
     pub async fn get_chapter_content(
         &self,
@@ -726,32 +887,38 @@ impl BookManager {
         chapter_index: usize,
     ) -> BookResult<crate::models::ChapterContent> {
         let chapters = self.get_book_chapters(book_id).await?;
-        
-        let chapter = chapters.get(chapter_index)
-            .ok_or_else(|| BookError::ChapterParseError(format!("章节不存在: {}", chapter_index)))?;
+
+        let chapter = chapters.get(chapter_index).ok_or_else(|| {
+            BookError::ChapterParseError(format!("章节不存在: {}", chapter_index))
+        })?;
 
         let full_content = self.get_book_content(book_id).await?;
-        
+
         // 使用字符索引而不是字节索引来避免UTF-8边界问题
         let chars: Vec<char> = full_content.chars().collect();
         let total_chars = chars.len();
-        
-        let chapter_content = if chapter.end_position <= total_chars {
-            chars[chapter.start_position..chapter.end_position].iter().collect()
-        } else if chapter.start_position < total_chars {
-            chars[chapter.start_position..].iter().collect()
+
+        // 确保索引在有效范围内
+        let start_pos = std::cmp::min(chapter.start_position, total_chars);
+        let end_pos = std::cmp::min(chapter.end_position, total_chars);
+
+        let mut chapter_content = if start_pos < end_pos && start_pos < total_chars {
+            chars[start_pos..end_pos].iter().collect()
         } else {
             String::new()
         };
 
+        // 去掉章节标题行（如果存在）
+        chapter_content = self.remove_chapter_title(&chapter_content, &chapter.title);
+
         // 计算预估阅读时间（假设每分钟阅读300字）
-        let estimated_reading_time = (chapter.word_count as f64 / 300.0).ceil() as u32;
+        let content_char_count = chapter_content.chars().count();
+        let estimated_reading_time = (content_char_count as f64 / 300.0).ceil() as u32;
 
         Ok(crate::models::ChapterContent {
             chapter_index,
             title: chapter.title.clone(),
             content: chapter_content,
-            word_count: chapter.word_count,
             estimated_reading_time,
         })
     }
@@ -769,7 +936,8 @@ impl BookManager {
 
         if page_number >= total_pages {
             return Err(BookError::ChapterParseError(format!(
-                "页面不存在: {}, 总页数: {}", page_number, total_pages
+                "页面不存在: {}, 总页数: {}",
+                page_number, total_pages
             )));
         }
 
@@ -790,112 +958,5 @@ impl BookManager {
             has_next_page: page_number + 1 < total_pages,
             has_previous_page: page_number > 0,
         })
-    }
-
-    // 以下是为集成测试添加的测试方法
-
-    /// 测试用：导入图书
-    #[cfg(test)]
-    pub async fn test_import_book(file_path: PathBuf) -> BookResult<Book> {
-        use crate::database::DatabaseManager;
-        use std::sync::Arc;
-        use tempfile::TempDir;
-
-        // 创建临时目录和数据库
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
-        let db_path = temp_dir.path().join("test.db");
-        let db = Arc::new(DatabaseManager::new(&db_path).expect("创建测试数据库失败"));
-        
-        // 创建图书管理器
-        let storage_path = temp_dir.path().join("books");
-        std::fs::create_dir_all(&storage_path).expect("创建图书存储目录失败");
-        let book_manager = BookManager::new(db, storage_path);
-        
-        // 导入图书
-        book_manager.import_book(file_path).await
-    }
-
-    /// 测试用：获取图书章节
-    #[cfg(test)]
-    pub async fn test_get_book_chapters(book_id: &str) -> BookResult<Vec<crate::models::BookChapter>> {
-        use crate::database::DatabaseManager;
-        use std::sync::Arc;
-        use tempfile::TempDir;
-
-        // 创建临时目录和数据库
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
-        let db_path = temp_dir.path().join("test.db");
-        let db = Arc::new(DatabaseManager::new(&db_path).expect("创建测试数据库失败"));
-        
-        // 创建图书管理器
-        let storage_path = temp_dir.path().join("books");
-        std::fs::create_dir_all(&storage_path).expect("创建图书存储目录失败");
-        let book_manager = BookManager::new(db, storage_path);
-        
-        // 获取章节
-        book_manager.get_book_chapters(book_id).await
-    }
-
-    /// 测试用：获取章节内容
-    #[cfg(test)]
-    pub async fn test_get_chapter_content(book_id: &str, chapter_index: usize) -> BookResult<crate::models::ChapterContent> {
-        use crate::database::DatabaseManager;
-        use std::sync::Arc;
-        use tempfile::TempDir;
-
-        // 创建临时目录和数据库
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
-        let db_path = temp_dir.path().join("test.db");
-        let db = Arc::new(DatabaseManager::new(&db_path).expect("创建测试数据库失败"));
-        
-        // 创建图书管理器
-        let storage_path = temp_dir.path().join("books");
-        std::fs::create_dir_all(&storage_path).expect("创建图书存储目录失败");
-        let book_manager = BookManager::new(db, storage_path);
-        
-        // 获取章节内容
-        book_manager.get_chapter_content(book_id, chapter_index).await
-    }
-
-    /// 测试用：更新阅读进度
-    #[cfg(test)]
-    pub async fn test_update_reading_progress(book_id: &str, progress: f64) -> BookResult<()> {
-        use crate::database::DatabaseManager;
-        use std::sync::Arc;
-        use tempfile::TempDir;
-
-        // 创建临时目录和数据库
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
-        let db_path = temp_dir.path().join("test.db");
-        let db = Arc::new(DatabaseManager::new(&db_path).expect("创建测试数据库失败"));
-        
-        // 创建图书管理器
-        let storage_path = temp_dir.path().join("books");
-        std::fs::create_dir_all(&storage_path).expect("创建图书存储目录失败");
-        let book_manager = BookManager::new(db, storage_path);
-        
-        // 更新阅读进度
-        book_manager.update_reading_progress(book_id, progress).await
-    }
-
-    /// 测试用：获取阅读进度
-    #[cfg(test)]
-    pub async fn test_get_reading_progress(book_id: &str) -> BookResult<f64> {
-        use crate::database::DatabaseManager;
-        use std::sync::Arc;
-        use tempfile::TempDir;
-
-        // 创建临时目录和数据库
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
-        let db_path = temp_dir.path().join("test.db");
-        let db = Arc::new(DatabaseManager::new(&db_path).expect("创建测试数据库失败"));
-        
-        // 创建图书管理器
-        let storage_path = temp_dir.path().join("books");
-        std::fs::create_dir_all(&storage_path).expect("创建图书存储目录失败");
-        let book_manager = BookManager::new(db, storage_path);
-        
-        // 获取阅读进度
-        book_manager.get_reading_progress(book_id).await
     }
 }

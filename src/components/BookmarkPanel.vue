@@ -1,84 +1,48 @@
 <template>
-  <BaseCard class="bookmark-panel">
-    <template #header>
+  <div class="bookmark-panel">
+    <div class="panel-header">
       <h3>书签管理</h3>
-      <BaseButton @click="$emit('close')" variant="ghost" size="small" class="close-btn">
-        ×
-      </BaseButton>
-    </template>
+      <button @click="$emit('close')" class="close-btn">×</button>
+    </div>
     
     <div class="bookmark-content">
-      <!-- 添加书签 -->
+      <!-- 简化的添加书签 -->
       <div class="add-bookmark-section">
-        <BaseButton @click="showAddForm = !showAddForm" variant="primary" icon="📌" class="add-bookmark-btn">
-          添加书签
-        </BaseButton>
-        
-        <BaseCard v-if="showAddForm" class="add-form" compact>
-          <BaseInput
-            v-model="newBookmarkNote" 
-            placeholder="添加备注（可选）"
-            type="textarea"
-            :rows="3"
-          />
-          <template #actions>
-            <BaseButton @click="addBookmark" variant="primary" size="small">确认</BaseButton>
-            <BaseButton @click="cancelAdd" variant="secondary" size="small">取消</BaseButton>
-          </template>
-        </BaseCard>
+        <button @click="handleAddBookmark" class="add-bookmark-btn">
+          📌 添加书签
+        </button>
       </div>
       
-      <!-- 书签列表 -->
+      <!-- 简化的书签列表 -->
       <div class="bookmarks-list">
-        <BaseCard v-if="bookmarks.length === 0" class="empty-state">
+        <div v-if="!bookmarks || bookmarks.length === 0" class="empty-state">
           <div class="empty-icon">📖</div>
           <p>暂无书签</p>
-          <p class="empty-hint">在阅读时添加书签，方便快速定位</p>
-        </BaseCard>
+        </div>
         
-        <BaseCard 
-          v-for="bookmark in sortedBookmarks" 
-          :key="bookmark.id"
-          class="bookmark-item"
-          hoverable
-          @click="goToBookmark(bookmark)"
-        >
-          <template #header>
+        <div v-else>
+          <div 
+            v-for="bookmark in bookmarks" 
+            :key="bookmark.id || Math.random()"
+            class="bookmark-item"
+          >
             <div class="bookmark-info">
-              <BaseBadge variant="primary" class="bookmark-position">
-                {{ formatPosition(bookmark.position) }}
-              </BaseBadge>
-              <span class="bookmark-time">{{ formatTime(bookmark.created_at) }}</span>
+              <span>位置: {{ bookmark.position || 0 }}</span>
+              <span>时间: {{ bookmark.created_at || '未知' }}</span>
             </div>
-            <BaseButton 
-              @click.stop="deleteBookmark(bookmark.id)" 
-              variant="ghost"
-              size="small"
-              title="删除书签"
-            >
-              🗑️
-            </BaseButton>
-          </template>
-          
-          <div v-if="bookmark.note" class="bookmark-note">
-            {{ bookmark.note }}
+            <div v-if="bookmark.note" class="bookmark-note">
+              {{ bookmark.note }}
+            </div>
           </div>
-          
-          <div class="bookmark-preview">
-            {{ bookmark.content_preview || '点击跳转到此位置' }}
-          </div>
-        </BaseCard>
+        </div>
       </div>
     </div>
-  </BaseCard>
+  </div>
 </template>
 
 <script>
-import { ref, computed, inject } from 'vue'
-
 export default {
   name: 'BookmarkPanel',
-  // 基础组件已全局注册，无需导入
   props: {
     bookmarks: {
       type: Array,
@@ -91,67 +55,22 @@ export default {
   },
   emits: ['close', 'add-bookmark', 'delete-bookmark', 'go-to-bookmark'],
   setup(props, { emit }) {
-    const showAddForm = ref(false)
-    const newBookmarkNote = ref('')
+    console.log('BookmarkPanel 初始化, bookmarks:', props.bookmarks)
     
-    const sortedBookmarks = computed(() => {
-      return [...props.bookmarks].sort((a, b) => b.created_at - a.created_at)
-    })
-    
-    const addBookmark = () => {
-      emit('add-bookmark', {
-        position: props.currentPosition,
-        note: newBookmarkNote.value.trim()
-      })
-      cancelAdd()
-    }
-    
-    const cancelAdd = () => {
-      showAddForm.value = false
-      newBookmarkNote.value = ''
-    }
-    
-    const deleteBookmark = (bookmarkId) => {
-      if (confirm('确定要删除这个书签吗？')) {
-        emit('delete-bookmark', bookmarkId)
-      }
-    }
-    
-    const goToBookmark = (bookmark) => {
-      emit('go-to-bookmark', bookmark)
-    }
-    
-    const formatPosition = (position) => {
-      const percentage = Math.round(position * 100)
-      return `${percentage}%`
-    }
-    
-    const formatTime = (timestamp) => {
-      const date = new Date(timestamp)
-      const now = new Date()
-      const diff = now - date
-      
-      if (diff < 60000) { // 1分钟内
-        return '刚刚'
-      } else if (diff < 3600000) { // 1小时内
-        return `${Math.floor(diff / 60000)}分钟前`
-      } else if (diff < 86400000) { // 1天内
-        return `${Math.floor(diff / 3600000)}小时前`
-      } else {
-        return date.toLocaleDateString()
+    const handleAddBookmark = () => {
+      try {
+        console.log('添加书签, currentPosition:', props.currentPosition)
+        emit('add-bookmark', {
+          position: props.currentPosition,
+          note: null
+        })
+      } catch (error) {
+        console.error('BookmarkPanel: 添加书签失败', error)
       }
     }
     
     return {
-      showAddForm,
-      newBookmarkNote,
-      sortedBookmarks,
-      addBookmark,
-      cancelAdd,
-      deleteBookmark,
-      goToBookmark,
-      formatPosition,
-      formatTime
+      handleAddBookmark
     }
   }
 }
@@ -160,47 +79,102 @@ export default {
 <style scoped>
 .bookmark-panel {
   width: 320px;
-  border-left: 1px solid var(--border-color);
+  background: var(--bg-primary, #ffffff);
+  border-left: 1px solid var(--border-color, #e0e0e0);
   display: flex;
   flex-direction: column;
-  z-index: 50;
   height: 100%;
+  z-index: 50;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-primary, #333);
 }
 
 .close-btn {
+  background: none;
+  border: none;
   font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  color: var(--text-secondary, #666);
 }
 
 .bookmark-content {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
-/* 添加书签区域 */
 .add-bookmark-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .add-bookmark-btn {
   width: 100%;
+  padding: 0.75rem;
+  background: var(--primary-color, #007bff);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
 }
 
 .add-form {
   margin-top: 1rem;
+  padding: 1rem;
+  background: var(--bg-secondary, #f8f9fa);
+  border-radius: 4px;
 }
 
-/* 表单样式已由BaseInput和BaseButton组件提供 */
+.bookmark-textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  resize: vertical;
+  font-family: inherit;
+}
 
-/* 书签列表 */
-.bookmarks-list {
-  max-height: none;
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.confirm-btn, .cancel-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.confirm-btn {
+  background: var(--primary-color, #007bff);
+  color: white;
+}
+
+.cancel-btn {
+  background: var(--bg-tertiary, #e9ecef);
+  color: var(--text-primary, #333);
 }
 
 .empty-state {
   text-align: center;
   padding: 2rem 1rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #666);
 }
 
 .empty-icon {
@@ -214,12 +188,27 @@ export default {
 
 .empty-hint {
   font-size: 0.8rem;
-  color: var(--text-muted);
+  color: var(--text-muted, #999);
 }
 
 .bookmark-item {
   margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-secondary, #f8f9fa);
+  border-radius: 4px;
   cursor: pointer;
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.bookmark-item:hover {
+  background: var(--bg-tertiary, #e9ecef);
+}
+
+.bookmark-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
 }
 
 .bookmark-info {
@@ -228,32 +217,49 @@ export default {
   gap: 0.75rem;
 }
 
+.bookmark-position {
+  background: var(--primary-color, #007bff);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
 .bookmark-time {
   font-size: 0.8rem;
-  color: var(--text-muted);
+  color: var(--text-muted, #999);
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 1rem;
+  color: var(--text-secondary, #666);
+}
+
+.delete-btn:hover {
+  color: var(--danger-color, #dc3545);
 }
 
 .bookmark-note {
-  background: var(--bg-secondary);
+  background: var(--bg-primary, #ffffff);
   padding: 0.5rem;
   border-radius: 4px;
   font-size: 0.9rem;
-  color: var(--text-primary);
+  color: var(--text-primary, #333);
   margin-bottom: 0.5rem;
-  border-left: 3px solid var(--primary-color);
+  border-left: 3px solid var(--primary-color, #007bff);
 }
 
 .bookmark-preview {
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #666);
   line-height: 1.4;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
 }
 
-/* 响应式设计 */
 @media (max-width: 640px) {
   .bookmark-panel {
     width: 100vw;

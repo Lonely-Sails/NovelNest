@@ -107,10 +107,7 @@ export const useReaderStore = defineStore('reader', {
     async loadBookContent(bookId, chapterIndex = 0) {
       this.loading = true
       try {
-        const content = await invoke('get_book_content', { 
-          bookId, 
-          chapter: chapterIndex 
-        })
+        const content = await invoke('get_book_content', { bookId })
         this.content = content
         this.calculatePages()
         

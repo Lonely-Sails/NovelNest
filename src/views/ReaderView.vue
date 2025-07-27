@@ -5,7 +5,7 @@
       <BaseButton @click="$router.back()" variant="ghost" icon="←">
         返回
       </BaseButton>
-      
+
       <div class="book-info">
         <h2>{{ book.title }}</h2>
         <span class="author">{{ book.author || '未知作者' }}</span>
@@ -13,11 +13,12 @@
           {{ currentChapter.title }}
         </span>
       </div>
-      
+
       <div class="reader-controls">
         <BaseButton @click="toggleSearch" variant="ghost" size="small" title="搜索 (Ctrl+F)" icon="🔍" />
         <BaseButton @click="toggleBookmarks" variant="ghost" size="small" title="书签 (B)" icon="📌" />
-        <BaseButton @click="toggleFullscreen" variant="ghost" size="small" title="全屏 (F11)" :icon="isFullscreen ? '🗗' : '🗖'" />
+        <BaseButton @click="toggleFullscreen" variant="ghost" size="small" title="全屏 (F11)"
+          :icon="isFullscreen ? '🗗' : '🗖'" />
         <BaseButton @click="toggleSettings" variant="ghost" size="small" title="设置 (S)" icon="⚙️" />
         <BaseButton @click="toggleToc" variant="ghost" size="small" title="目录 (T)" icon="📋" />
       </div>
@@ -31,16 +32,16 @@
           <div class="loading-spinner"></div>
           <p>加载中...</p>
         </div>
-        
+
         <div v-else class="content-container">
           <!-- 章节标题 -->
           <h1 v-if="currentChapter && showChapterTitle" class="chapter-title">
             {{ currentChapter.title }}
           </h1>
-          
+
           <!-- 文本内容 -->
           <div class="content-text" v-html="formattedContent"></div>
-          
+
           <!-- 翻页提示 -->
           <div class="page-hint" v-if="showPageHint">
             <span v-if="canGoNext">点击右侧或按 → 翻页</span>
@@ -48,7 +49,7 @@
             <span v-else>已到达最后一页</span>
           </div>
         </div>
-        
+
         <!-- 翻页区域 -->
         <div class="page-turn-areas">
           <div class="page-turn-left" @click="previousPage" title="上一页"></div>
@@ -63,21 +64,15 @@
             <h3>阅读设置</h3>
             <BaseButton @click="showSettings = false" variant="ghost" size="small">×</BaseButton>
           </div>
-          
+
           <div class="settings-content">
             <!-- 字体设置 -->
             <div class="setting-group">
               <label>字体大小</label>
               <div class="range-control">
                 <button @click="adjustFontSize(-1)" class="adjust-btn">-</button>
-                <input 
-                  v-model.number="settings.fontSize" 
-                  type="range" 
-                  min="12" 
-                  max="32" 
-                  @input="updateSettings"
-                  class="range-input"
-                >
+                <input v-model.number="settings.fontSize" type="range" min="12" max="32" @input="updateSettings"
+                  class="range-input">
                 <button @click="adjustFontSize(1)" class="adjust-btn">+</button>
                 <span class="value">{{ settings.fontSize }}px</span>
               </div>
@@ -88,15 +83,8 @@
               <label>行间距</label>
               <div class="range-control">
                 <button @click="adjustLineHeight(-0.1)" class="adjust-btn">-</button>
-                <input 
-                  v-model.number="settings.lineHeight" 
-                  type="range" 
-                  min="1.0" 
-                  max="3.0" 
-                  step="0.1"
-                  @input="updateSettings"
-                  class="range-input"
-                >
+                <input v-model.number="settings.lineHeight" type="range" min="1.0" max="3.0" step="0.1"
+                  @input="updateSettings" class="range-input">
                 <button @click="adjustLineHeight(0.1)" class="adjust-btn">+</button>
                 <span class="value">{{ settings.lineHeight.toFixed(1) }}</span>
               </div>
@@ -119,13 +107,9 @@
             <div class="setting-group">
               <label>阅读主题</label>
               <div class="theme-options">
-                <button 
-                  v-for="theme in themes" 
-                  :key="theme.value"
-                  @click="setTheme(theme.value)"
+                <button v-for="theme in themes" :key="theme.value" @click="setTheme(theme.value)"
                   :class="['theme-btn', { active: settings.theme === theme.value }]"
-                  :style="{ backgroundColor: theme.bg, color: theme.color }"
-                >
+                  :style="{ backgroundColor: getThemeBackground(theme.value), color: getThemeColor(theme.value) }">
                   {{ theme.name }}
                 </button>
               </div>
@@ -136,15 +120,8 @@
               <label>页边距</label>
               <div class="range-control">
                 <button @click="adjustMargin(-5)" class="adjust-btn">-</button>
-                <input 
-                  v-model.number="settings.pageMargin" 
-                  type="range" 
-                  min="10" 
-                  max="80"
-                  step="5"
-                  @input="updateSettings"
-                  class="range-input"
-                >
+                <input v-model.number="settings.pageMargin" type="range" min="10" max="80" step="5"
+                  @input="updateSettings" class="range-input">
                 <button @click="adjustMargin(5)" class="adjust-btn">+</button>
                 <span class="value">{{ settings.pageMargin }}px</span>
               </div>
@@ -154,15 +131,8 @@
             <div class="setting-group">
               <label>页面宽度</label>
               <div class="range-control">
-                <input 
-                  v-model.number="settings.maxWidth" 
-                  type="range" 
-                  min="600" 
-                  max="1200"
-                  step="50"
-                  @input="updateSettings"
-                  class="range-input"
-                >
+                <input v-model.number="settings.maxWidth" type="range" min="600" max="1200" step="50"
+                  @input="updateSettings" class="range-input">
                 <span class="value">{{ settings.maxWidth }}px</span>
               </div>
             </div>
@@ -170,55 +140,35 @@
             <!-- 其他设置 -->
             <div class="setting-group">
               <label class="checkbox-label">
-                <input 
-                  type="checkbox" 
-                  v-model="settings.showChapterTitle" 
-                  @change="updateSettings"
-                >
+                <input type="checkbox" v-model="settings.showChapterTitle" @change="updateSettings">
                 显示章节标题
               </label>
             </div>
 
             <div class="setting-group">
               <label class="checkbox-label">
-                <input 
-                  type="checkbox" 
-                  v-model="settings.enablePageAnimation" 
-                  @change="updateSettings"
-                >
+                <input type="checkbox" v-model="settings.enablePageAnimation" @change="updateSettings">
                 翻页动画
               </label>
             </div>
 
             <div class="setting-group">
               <label class="checkbox-label">
-                <input 
-                  type="checkbox" 
-                  v-model="settings.autoSaveProgress" 
-                  @change="updateSettings"
-                >
+                <input type="checkbox" v-model="settings.autoSaveProgress" @change="updateSettings">
                 自动保存阅读进度
               </label>
             </div>
 
             <div class="setting-group">
               <label class="checkbox-label">
-                <input 
-                  type="checkbox" 
-                  v-model="settings.enableKeyboardShortcuts" 
-                  @change="updateSettings"
-                >
+                <input type="checkbox" v-model="settings.enableKeyboardShortcuts" @change="updateSettings">
                 启用键盘快捷键
               </label>
             </div>
 
             <div class="setting-group">
               <label class="checkbox-label">
-                <input 
-                  type="checkbox" 
-                  v-model="settings.enableClickTurn" 
-                  @change="updateSettings"
-                >
+                <input type="checkbox" v-model="settings.enableClickTurn" @change="updateSettings">
                 点击翻页
               </label>
             </div>
@@ -235,12 +185,7 @@
                 </button>
                 <label class="action-btn import-btn">
                   导入设置
-                  <input 
-                    type="file" 
-                    accept=".json"
-                    @change="importSettings"
-                    style="display: none;"
-                  >
+                  <input type="file" accept=".json" @change="importSettings" style="display: none;">
                 </label>
               </div>
             </div>
@@ -250,27 +195,15 @@
 
       <!-- 搜索面板 -->
       <transition name="slide-left">
-        <SearchPanel
-          v-if="showSearch"
-          :content="content"
-          :current-position="readingProgress"
-          @close="showSearch = false"
-          @go-to-position="goToPosition"
-          @highlight-text="highlightSearchText"
-        />
+        <SearchPanel v-if="showSearch" :content="content" :current-position="readingProgress"
+          @close="showSearch = false" @go-to-position="goToPosition" @highlight-text="highlightSearchText" />
       </transition>
 
       <!-- 书签面板 -->
       <transition name="slide-left">
-        <BookmarkPanel
-          v-if="showBookmarks"
-          :bookmarks="bookmarks"
-          :current-position="readingProgress"
-          @close="showBookmarks = false"
-          @add-bookmark="addBookmark"
-          @delete-bookmark="deleteBookmark"
-          @go-to-bookmark="goToBookmark"
-        />
+        <BookmarkPanel v-if="showBookmarks" :bookmarks="bookmarks" :current-position="readingProgress"
+          @close="showBookmarks = false" @add-bookmark="addBookmark" @delete-bookmark="deleteBookmark"
+          @go-to-bookmark="goToBookmark" />
       </transition>
 
       <!-- 目录面板 -->
@@ -280,19 +213,15 @@
             <h3>目录</h3>
             <BaseButton @click="showToc = false" variant="ghost" size="small">×</BaseButton>
           </div>
-          
+
           <div class="toc-content">
             <div class="toc-list">
-              <div 
-                v-for="(chapter, index) in chapters" 
-                :key="chapter.id || index"
-                @click="goToChapter(index)"
-                :class="['toc-item', { active: currentChapterIndex === index }]"
-              >
+              <div v-for="(chapter, index) in chapters" :key="chapter.id || index" @click="goToChapter(index)"
+                :class="['toc-item', { active: currentChapterIndex === index }]">
                 <span class="chapter-number">{{ index + 1 }}</span>
                 <span class="chapter-title">{{ chapter.title || `第${index + 1}章` }}</span>
               </div>
-              
+
               <!-- 如果没有章节数据，显示默认章节 -->
               <div v-if="chapters.length === 0" class="toc-item active">
                 <span class="chapter-number">1</span>
@@ -311,53 +240,29 @@
           <span class="page-info">{{ currentPage + 1 }} / {{ totalPages }}</span>
           <span class="progress-percent">{{ Math.round(readingProgress * 100) }}%</span>
         </div>
-        
+
         <div class="progress-bar" @click="handleProgressClick">
-          <div 
-            class="progress-fill" 
-            :style="{ width: readingProgress * 100 + '%' }"
-          ></div>
+          <div class="progress-fill" :style="{ width: readingProgress * 100 + '%' }"></div>
         </div>
       </div>
-      
+
       <div class="navigation-controls">
-        <BaseButton 
-          @click="previousChapter" 
-          :disabled="!hasPreviousChapter"
-          variant="outline"
-          size="small"
-          title="上一章 (Ctrl+←)"
-        >
+        <BaseButton @click="previousChapter" :disabled="!hasPreviousChapter" variant="outline" size="small"
+          title="上一章 (Ctrl+←)">
           上一章
         </BaseButton>
-        
-        <BaseButton 
-          @click="previousPage" 
-          :disabled="!canGoPrevious"
-          variant="outline"
-          size="small"
-          title="上一页 (←)"
-        >
+
+        <BaseButton @click="previousPage" :disabled="!canGoPrevious" variant="outline" size="small" title="上一页 (←)">
           上一页
         </BaseButton>
-        
-        <BaseButton 
-          @click="nextPage" 
-          :disabled="!canGoNext && !hasNextChapter"
-          variant="outline"
-          size="small"
-          title="下一页 (→)"
-        >
+
+        <BaseButton @click="nextPage" :disabled="!canGoNext && !hasNextChapter" variant="outline" size="small"
+          title="下一页 (→)">
           {{ canGoNext ? '下一页' : (hasNextChapter ? '下一章' : '完') }}
         </BaseButton>
-        
-        <BaseButton 
-          @click="nextChapter" 
-          :disabled="!hasNextChapter"
-          variant="outline"
-          size="small"
-          title="下一章 (Ctrl+→)"
-        >
+
+        <BaseButton @click="nextChapter" :disabled="!hasNextChapter" variant="outline" size="small"
+          title="下一章 (Ctrl+→)">
           下一章
         </BaseButton>
       </div>
@@ -375,1315 +280,758 @@
   </div>
 </template>
 
-<script>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
-import { invoke } from '@tauri-apps/api/core'
-
-export default {
-  name: 'ReaderView',
-  setup() {
-    const route = useRoute()
-    
-    // 基础状态
-    const book = ref(null)
-    const content = ref('')
-    const loading = ref(false)
-
-    
-    // UI 状态
-    const showSettings = ref(false)
-    const showToc = ref(false)
-    const isFullscreen = ref(false)
-
-    
-    // 阅读状态
-    const curren= ref(0)
-    const totalPages = ref(1)
-    const currentChapterIn ref(0)
-    const )
-    
-    // 阅读设置
-    const settings = ref({
-      font6,
-      lineHeight
-      fontFamily: 'system',
-      theme: 'light',
-      pag: 20,
-      m: 800,
-rue,
-      enablePan: true
-    })
-
-    // 主题配置
-    const themes = ref([
-      {,
-      },
-
-      { name: '青色', value: 'cyan',}
-    ])
-
-算属性
-    const c=> {
-      return chapters.va: '正文' }
-    })
-
-    cons
-      return settinlue
-    })
-
-    const readingProgres
-      if (totalPages.valurn 0
-      return currentPage.value value
-    })
-
-    const canGoPrevious
-      return currentPage.value > 0
-    })
-
-    con
-     value - 1
-   })
-
-    const hasPreviousChapter = computed(() => {
-      return currentChaptere > 0
-    })
-
-    const hasNextChapter = co(() => {
-      return currentChapterIndex.val 1
-    })
-
-(() => {
-      if (!content.value) return ''
-      
-      // 简单的文本格式化
-     
-)
-        .replace(/^/, '<p>')
-        .replace(/$/, '</p>')
-        .replace(/
-    })
-
-    c
-
-        light: {
-          backgrounffff',
-          color: '#33333
-     ,
-
-          backgroundColor: 'a',
-          color: '#
-        },
-     a: {
-f4f1e8',
-          color: '#5c4b37'
-        },
-        cyan: {
-          backgroundColo7fa',
-          color '#006064'
-        }
-      }
-
-      const fontFamily
-        system: '-apple-system, Blinserif',
-        serif: '"Times New Romaif',
-        'sans-s',
-       ce'
-      }
-
-      return {
-        fontSize: see + 'px',
-        lineHeig,
-        fontFamily: fontFamilyMap[settings.value.fontFamiamily,
-      x',
-'px',
-        margin: '0 auto',
-        ...themeStyles[settings.value.theme]
-      
-
-
-    // 方法
-    const load {
-      const bos.id
-      loading.value
-
-      try {
-        // 临时数据用于展示
-        book.value = 
-          id: bookId,
-          title: '红楼梦
-          author: ',
-          read.3
-     
-    
- / 模拟章节数据
-        clue = [
-,
-          { id},
-         }
-        ]
-        
-        // 模拟长文本内容
-        content.value = `第一回 甄士隐梦幻闺秀
-
-不惑。
-
-原来女娲氏炼石补天之时，于大荒山
-
-谁知此石自经锻炼之后，灵性已通，因见众石俱得补天，独自己无材不堪入，日夜悲号惭愧。
-
-一日，正当嗟悼之际，俄见一僧一道远远而来，生得骨格不凡，丰神迥异贵。
-
-此万劫不忘也。"
-
-二仙师听毕，齐憨笑道：如不去的好。"
-
-这石凡心已炽，那里听得进这话去切莫后悔。"
-
-石道："自然，自然。"
-
-那僧又道："若说你性灵，却又如此质蠢，并更
-
-石
-
-石头听了，喜不能禁，乃问："不知赐。"
-
-那
-
-后来，又不知过了几世几劫，因有的一段故事。
-
-后面又有一首偈云：
-
-无若许年。
-奇传？
-
-诗后便说：后因曹雪芹于悼红轩中披阅
-
-满一把辛酸泪！
-者痴，谁解其中味？
-
-出则既明，且看石上是何故事。按那云：
-
-当为望族了。
-
-因这甄士隐禀性恬淡，不以功名
-
-一日，炎夏永昼，士隐于书房闲坐，至手倦抛书，伏几盹睡，不
-
-只听道人问道："你携了这蠢物，意欲何往？"
-
-那僧笑道："你放心，如今现有一段风流公案正该了结，这一干"
-
-处？"
-
-那僧道："此事说来好笑，竟是那些精怪化人，来到世上，爱上
-
-故。"
-
-又有护官符云：
-
-贾不假，白玉为堂金作马。
-阿房宫，三百里，住不下金陵一个史。
-东海缺少白玉床，龙王来请金陵王。
-丰土金如铁。
-
-这四家皆连络有亲，一损皆损，一，俱有照应的。
-
-今且说甄士隐夫妇，因见女儿一日长似一日
-
-急
-
-那士隐夫妇，见女儿一
-
-看看一月，士隐先已哭病，那封氏也因思女构疾。一日，炎
-
-梦至一处，不辨是何地方。忽见那
-
-那僧笑道："你放心，如今现有一段风。"
-
-
-
-那僧道："此事说来好笑..."`
-        
-        calculatePages()
-        
- 
-r)
-      } finally 
-        loadlse
-      }
-    }
-
-    const calcul () => {
-      // 简化的页数计算
- 0
-
-      totalPages.vaPage))
-    }
-
-    // 设置相关方法
-    const toggleSettings = () => {
-      showSettings.valu
- e
- }
-
-    const toggleToc = => {
- lue
-ue = false
-    }
-
-    const toggleFullscre=> {
-      isFullscreelue
-      
- e) {
-n?.()
-      } else {
-        documen?.()
-      }
-    }
-
-    const setTheme = (t{
-      settingse
-      updateSettin
-    }
-
- > {
-))
-      setti
-      updateSettings
-    }
-
-
-      const
-      settings.valu/ 10
-      updateSettings()
-    }
-
- {
-
-      settings.vaewMargin
-      updateSettings()
- 
-
-    const update
-      localStorage.sue))
-      calculatePages()
-    }
-
-    const loadSettings{
-      try {
- s')
- {
-          settind) }
-        }
-      } catch (error) {
-        console.er
- }
-    }
-
-    // 翻页相关方法
-    const prev
-      if (canGoPrevious.valu {
-        currentPage.v-
-        saveReading
- {
-()
-      }
-    }
-
-    const nextPage = () => {
- alue) {
-ue++
-        saveR)
-      } else if ) {
-        nextCh()
- 
-    }
-
-    const previousChap=> {
-      if (hasPr{
-        currentlue--
-        currentPage.val= 0
-        // 这里应该加载新章节内容
-        saveReadin
-      }
- 
-
-    const nextCh=> {
-      if (hasNextChapter.val
- e++
- 0
-        // 这里应容
-        saveRead
-      }
-    }
-
-    const goToChex) => {
-      if (in
- 
-
-        showToc.vfalse
-        // 这里应该加载
- ress()
-
-    }
-
-    const handlt) => {
-      const rec
-      const clickX = eventrect.left
-      const progress t.width
-      const target)
-      
-      currentPage.value = Math.max(0, Matage))
- 
-    }
-
-    const saveReadingProgres=> {
- return
-        t>rip
-</sc }
-}
-    }
- tClickConten  handle
-    k,ogressClichandlePr   ,
-   apteroToCher,
-      gtChapt   nex,
-   pterviousCha
-      prextPage,   nege,
-   Pa    previousettings,
-    updateS
-    in,Margdjustht,
-      aineHeigstLadjuize,
-      tSadjustFone,
-           setThemn,
- reelsc  toggleFul
-    toggleToc,  ings,
-      toggleSett// 方法
-       
-      
-   rStyles,readet,
-      edContenormatt   fter,
-   xtChapsNe     hasChapter,
- sPreviou    hat,
-      canGoNexs,
-  GoPreviou    cans,
-  esingProgr     readterTitle,
- wChap,
-      shoapterntChcurre       // 计算属性
-   
-         themes,
-gs,
-        settinpters,
-        chadex,
- pterInentCha curr
-     es,lPagota      t
-currentPage,     ageHint,
- howP    s  s,
-ontrol      showCen,
-isFullscreoc,
-           showT
- Settings,showea,
-      Areading      rg,
-  loadin
-    nt,
-      conte      book,/ 状态
-    /
-     return { })
-
- mer)
-   eControlsTiimeout(hidrT      cleaove)
-andleMouseMve', husemor('moentListene.removeEv   documentydown)
-   dleKeydown', hanListener('keveEventocument.remo  d
-    => {() unted(
-    onUnmo
-    })
-   }, 1000))
-    3000  },e
-      lue = falsageHint.va     showP
-     ut(() => {meo   setTi    
- ue = trueHint.val  showPage> {
-      t(() =imeousetT提示
-          // 显示翻页    
-  e)
-  ovndleMouseMusemove', har('moventListenement.addE      docu)
-own handleKeyd'keydown',tListener(ent.addEven     docum
-      
- gProgress()in   loadReaddBook()
-      await loa)
-   ngs(Setti load{
-      => sync ()(aounted命周期
-    onM 生//     }
-
- 
-  mer()deControlsTitHi   rese
-   => {ve = () useMot handleMo
-
-    cons    }00)
- }, 30se
-     alue = falols.v showContr
-       (() => {imeout setTer =ntrolsTimeCo)
-      hidimerontrolsTideCearTimeout(h
-      cle = true.valurols   showCont     
-   e) return
- en.valuisFullscreif (! {
-      ) =>= (imer trolsTsetHideCon  const re  er = null
-olsTimdeContrhi）
-    let 控制栏（全屏模式下 // 自动隐藏   }
-
-   
-      }
-     breaklt()
-      preventDefauent.     evage()
-       nextP      ':
-    '     case  break
-          
- lt()fau.preventDe   event     screen()
-   toggleFull        11':
-      case 'F   k
-       brea    }
-   
-      ()efaultnt.preventD eve
-           gleToc()         toglKey) {
-   ctr (!event.    if':
-       'T  case  
-    t': '     casek
-         brea }
-    
-         ult()eventDefat.pr    even)
-        ettings(    toggleS     
-   ctrlKey) { (!event.      if    :
-    case 'S' 's':
-     case
-         break             }
- )
-    ullscreen(    toggleF     {
-    ue)een.valisFullscr   if (se
-        = falc.valueowTo   sh     
-  ue = false.valgsinhowSett         scape':
- Es    case 'ak
-        bre
-      ault()t.preventDef   even            }
-  
-   e()   nextPag     lse {
-             } e()
- hapterxtC   ne       {
-  y) lKe (event.ctr   if    
-   ArrowRight':     case 'eak
-             br)
-ault(entDeft.prev    even   }
-      ()
-       ge  previousPa          {
- else         } )
- ter(reviousChap     p    y) {
-   Kent.ctrl    if (eveft':
-      wLee 'Arro        cas{
-nt.key)  (eve   switch
-
-       }return
-   {
-        'TEXTAREA')gName === t.ta.targe| event== 'INPUT' |tagName =get.arnt.teve if (处理快捷键
-      // 如果正在输入，不
-     ent) => {wn = (evandleKeydo  const h
-  
-    }
-  }e()
-    nextPag
-         / 2) {+ centerX> centerX clickX  else if ()
-      }reviousPage(        p
-X / 2) {ckX < center   if (cli    
-   2
-   / t.widthrX = rect centenscot
-      X - rect.lefient event.clX =onst click      c    
-urn
-  !rect) ret      if (()
-ntRectBoundingClie.gete?luingArea.va rect = readconst{
-      =>  (event) tClick =dleContennst han    co// 事件处理
-   
-
-  }
-    }ror)
-     进度失败:', err('加载阅读rro.e console{
-       tch (error) ca
-      }  }   
-    e || 0Data.pag= progressue valentPage.curr        er || 0
-  aptessData.chalue = progr.vhapterIndexntC     curreaved)
-     parse(sN.JSOata = essD progronst  c  ) {
-      (saved if      }`)
-  .id{book.valuerogress_$(`reading_prage.getItemocalStoved = l    const sary {
-      
-      t   return
-  alue)k.v if (!boo   ) => {
-  ogress = (gPrinloadReadst 
-    con}
-}
-          )
-rror阅读进度失败:', eerror('保存nsole.        co {
-r)atch (erro      } ca))
-ogressDattringify(prJSON.sid}`, alue.ess_${book.vogrding_prItem(`rearage.setalSto     loc    }
-      .now()
- amp: Date   timest       age.value,
-: currentP  page
-        ndex.value,ntChapterI: curreapter        chs,
-  rogres        p
-  id,alue.: book.v      bookId  = {
-  ressData   const prog存储
-      到本地   // 临时保存   
-     // })
-           
-  uealrrentPage.vage: cu    //   p  ,
-  ex.valuetChapterIndenpter: curr //   cha       
-ss,grero p      //  e.id, 
-  lu.va: book/   bookId
-        /{ s', ing_progres_readsavet invoke('ai/ aw        /PI保存进度
-后端A/ 这里应该调用     /ue
-   ogress.val= readingPrress ogpr   const {
-      try 
-   <scrip
-t>
+<script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { invoke } from '@tauri-apps/api/core'
 import SearchPanel from '../components/SearchPanel.vue'
 import BookmarkPanel from '../components/BookmarkPanel.vue'
-import { 
-  settingsManager, 
-  progressManager, 
-  READER_THEMES, 
-  getThemeStyles, 
-  getFontFamilyStyle,
-  validateSettingsValue 
-} from '../utils/settingsManager.js'
+import { useToast } from '../composables/useToast'
 
-export default {
-  components: {
-    SearchPanel,
-    BookmarkPanel
-  },
-  name: 'ReaderView',
-  setup() {
-    const route = useRoute()
-    
-    // 基础状态
-    const book = ref(null)
-    const content = ref('')
-    const loading = ref(false)
-    const readingArea = ref(null)
-    
-    // UI 状态
-    const showSettings = ref(false)
-    const showToc = ref(false)
-    const showSearch = ref(false)
-    const showBookmarks = ref(false)
-    const isFullscreen = ref(false)
-    const showControls = ref(true)
-    const showPageHint = ref(false)
-    
-    // 阅读状态
-    const currentPage = ref(0)
-    const totalPages = ref(1)
-    const currentChapterIndex = ref(0)
-    const chapters = ref([])
-    const bookmarks = ref([])
-    const searchHighlight = ref('')
-    
-    // 阅读设置
-    const settings = ref(settingsManager.load())
+// 路由和消息提示
+const route = useRoute()
+const { showSuccess, showError, showInfo } = useToast()
 
-    // 主题配置
-    const themes = ref(READER_THEMES)
+// 基础状态
+const book = ref(null)
+const content = ref('')
+const loading = ref(false)
+const readingArea = ref(null)
+const bookmarks = ref([])
 
-    // 计算属性
-    const currentChapter = computed(() => {
-      return chapters.value[currentChapterIndex.value] || { title: '正文' }
+// UI 状态
+const showSettings = ref(false)
+const showToc = ref(false)
+const showSearch = ref(false)
+const showBookmarks = ref(false)
+const isFullscreen = ref(false)
+const showControls = ref(true)
+const showPageHint = ref(false)
+
+// 阅读状态
+const currentPage = ref(0)
+const totalPages = ref(1)
+const currentChapterIndex = ref(0)
+const chapters = ref([])
+const searchHighlight = ref('')
+
+// 阅读设置
+const settings = ref({
+  fontSize: 16,
+  lineHeight: 1.5,
+  fontFamily: 'system',
+  theme: 'light',
+  pageMargin: 20,
+  maxWidth: 800,
+  showChapterTitle: true,
+  enablePageAnimation: true,
+  autoSaveProgress: true,
+  enableKeyboardShortcuts: true,
+  enableClickTurn: true
+})
+
+// 主题配置
+const themes = ref([
+  { name: '浅色', value: 'light' },
+  { name: '深色', value: 'dark' },
+  { name: '护眼', value: 'sepia' },
+  { name: '青色', value: 'cyan' }
+])
+
+// 计算属性
+const currentChapter = computed(() => {
+  return chapters.value[currentChapterIndex.value] || { title: '正文' }
+})
+
+const showChapterTitle = computed(() => {
+  return settings.value.showChapterTitle && currentChapter.value
+})
+
+const readingProgress = computed(() => {
+  if (totalPages.value === 0) return 0
+  return currentPage.value / totalPages.value
+})
+
+const canGoPrevious = computed(() => {
+  return currentPage.value > 0
+})
+
+const canGoNext = computed(() => {
+  return currentPage.value < totalPages.value - 1
+})
+
+const hasPreviousChapter = computed(() => {
+  return currentChapterIndex.value > 0
+})
+
+const hasNextChapter = computed(() => {
+  return currentChapterIndex.value < chapters.value.length - 1
+})
+
+const formattedContent = computed(() => {
+  if (!content.value) return ''
+
+  // 简单的文本格式化
+  return content.value
+    .replace(/\n\s*\n/g, '</p><p>')
+    .replace(/^/, '<p>')
+    .replace(/$/, '</p>')
+    .replace(/<p><\/p>/g, '')
+})
+
+const readerStyles = computed(() => {
+  const themeStyles = getThemeStyles(settings.value.theme)
+
+  return {
+    fontSize: settings.value.fontSize + 'px',
+    lineHeight: settings.value.lineHeight,
+    fontFamily: getFontFamilyStyle(settings.value.fontFamily),
+    padding: settings.value.pageMargin + 'px',
+    maxWidth: settings.value.maxWidth + 'px',
+    margin: '0 auto',
+    ...themeStyles
+  }
+})
+
+// 方法
+const loadBook = async () => {
+  const bookId = route.params.id
+  loading.value = true
+
+  try {
+    // 从后端获取图书信息
+    const books = await invoke('get_books')
+    const bookData = books.find(b => b.id === bookId)
+    if (!bookData) {
+      showError('图书不存在！');
+      console.error('图书不存在:', bookId)
+      return loading.value = false
+    }
+
+    book.value = bookData
+
+    // 获取章节数据
+    const chaptersData = await invoke('get_book_chapters', { bookId })
+    chapters.value = chaptersData || []
+
+    // 获取当前章节内容
+    if (chapters.value.length > 0) {
+      await loadChapterContent(currentChapterIndex.value)
+    } else {
+      // 如果没有章节数据，直接加载全部内容
+      const contentData = await invoke('get_book_content', { bookId })
+      content.value = contentData || ''
+    }
+
+    calculatePages()
+
+    // 加载阅读进度
+    loadReadingProgress()
+
+    // 加载书签
+    loadBookmarks()
+
+  } catch (error) {
+    console.error('加载图书失败:', error)
+    showError('加载图书失败: ' + error.message)
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadChapterContent = async (chapterIndex) => {
+  if (!book.value || !chapters.value[chapterIndex]) return
+
+  try {
+    loading.value = true
+    const chapterContent = await invoke('get_chapter_content', {
+      bookId: book.value.id,
+      chapterIndex: chapterIndex
     })
 
-    const showChapterTitle = computed(() => {
-      return settings.value.showChapterTitle && currentChapter.value
-    })
+    content.value = chapterContent.content || ''
+    currentChapterIndex.value = chapterIndex
+    currentPage.value = 0
+    calculatePages()
+    // 保存阅读进度
+    if (settings.value.autoSaveProgress) saveReadingProgress()
 
-    const readingProgress = computed(() => {
-      if (totalPages.value === 0) return 0
-      return currentPage.value / totalPages.value
-    })
+  } catch (error) {
+    console.error('加载章节内容失败:', error)
+    showError('加载章节失败: ' + error.message)
+  } finally {
+    loading.value = false
+  }
+}
 
-    const canGoPrevious = computed(() => {
-      return currentPage.value > 0
-    })
+const loadBookmarks = async () => {
+  if (!book.value) {
+    console.warn('loadBookmarks: book.value is null')
+    return
+  }
 
-    const canGoNext = computed(() => {
-      return currentPage.value < totalPages.value - 1
-    })
+  try {
+    console.log('开始加载书签, bookId:', book.value.id)
+    const bookmarksData = await invoke('get_bookmarks', { bookId: book.value.id })
+    console.log('书签数据加载成功:', bookmarksData)
 
-    const hasPreviousChapter = computed(() => {
-      return currentChapterIndex.value > 0
-    })
+    // 确保数据是数组格式
+    if (Array.isArray(bookmarksData)) {
+      bookmarks.value = bookmarksData
+    } else {
+      console.warn('书签数据不是数组格式:', bookmarksData)
+      bookmarks.value = []
+    }
+  } catch (error) {
+    console.error('加载书签失败:', error)
+    bookmarks.value = []
+    // 不显示错误提示，避免干扰用户
+  }
+}
 
-    const hasNextChapter = computed(() => {
-      return currentChapterIndex.value < chapters.value.length - 1
-    })
+const calculatePages = () => {
+  // 根据当前阅读区域大小和内容计算页数
+  if (!readingArea.value || !content.value) {
+    totalPages.value = 1
+    return
+  }
 
-    const formattedContent = computed(() => {
-      if (!content.value) return ''
-      
-      // 简单的文本格式化
-      return content.value
-        .replace(/\n\s*\n/g, '</p><p>')
-        .replace(/^/, '<p>')
-        .replace(/$/, '</p>')
-        .replace(/<p><\/p>/g, '')
-    })
+  // 简化的页数计算 - 实际应用中可能需要更复杂的算法
+  const wordsPerPage = settings.value.fontSize > 18 ? 600 : 800
+  const wordCount = content.value.length
+  totalPages.value = Math.max(1, Math.ceil(wordCount / wordsPerPage))
+}
 
-    const readerStyles = computed(() => {
-      return {
-        fontSize: settings.value.fontSize + 'px',
-        lineHeight: settings.value.lineHeight,
-        fontFamily: getFontFamilyStyle(settings.value.fontFamily),
-        padding: settings.value.pageMargin + 'px',
-        maxWidth: settings.value.maxWidth + 'px',
-        margin: '0 auto',
-        ...getThemeStyles(settings.value.theme)
-      }
-    })
+// 设置相关方法
+const toggleSettings = () => {
+  showSettings.value = !showSettings.value
+  showToc.value = false
+  showSearch.value = false
+  showBookmarks.value = false
+}
 
-    // 方法
-    const loadBook = async () => {
-      const bookId = route.params.id
-      loading.value = true
+const toggleToc = () => {
+  showToc.value = !showToc.value
+  showSettings.value = false
+  showSearch.value = false
+  showBookmarks.value = false
+}
 
+const toggleSearch = () => {
+  showSearch.value = !showSearch.value
+  showSettings.value = false
+  showToc.value = false
+  showBookmarks.value = false
+}
+
+const toggleBookmarks = () => {
+  showBookmarks.value = !showBookmarks.value
+  showSettings.value = false
+  showToc.value = false
+  showSearch.value = false
+}
+
+const toggleFullscreen = () => {
+  isFullscreen.value = !isFullscreen.value
+
+  if (isFullscreen.value) {
+    document.documentElement.requestFullscreen?.()
+  } else {
+    document.exitFullscreen?.()
+  }
+}
+
+const setTheme = (theme) => {
+  settings.value.theme = theme
+  updateSettings()
+}
+
+const getThemeStyles = (theme) => {
+  const themeStyles = {
+    light: {
+      backgroundColor: '#ffffff',
+      color: '#333333'
+    },
+    dark: {
+      backgroundColor: '#222222',
+      color: '#eeeeee'
+    },
+    sepia: {
+      backgroundColor: '#f4f1e8',
+      color: '#5c4b37'
+    },
+    cyan: {
+      backgroundColor: '#e0f7fa',
+      color: '#006064'
+    }
+  }
+
+  return themeStyles[theme] || themeStyles.light
+}
+
+const getThemeBackground = (theme) => {
+  return getThemeStyles(theme).backgroundColor
+}
+
+const getThemeColor = (theme) => {
+  return getThemeStyles(theme).color
+}
+
+const getFontFamilyStyle = (fontFamily) => {
+  const fontFamilyMap = {
+    system: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    serif: '"Times New Roman", Georgia, serif',
+    'sans-serif': 'Arial, Helvetica, sans-serif',
+    monospace: '"Courier New", monospace'
+  }
+
+  return fontFamilyMap[fontFamily] || fontFamily || fontFamilyMap.system
+}
+
+const adjustFontSize = (delta) => {
+  const newSize = Math.min(Math.max(12, settings.value.fontSize + delta), 32)
+  settings.value.fontSize = newSize
+  updateSettings()
+}
+
+const adjustLineHeight = (delta) => {
+  const newHeight = Math.min(Math.max(1.0, settings.value.lineHeight + delta), 3.0)
+  settings.value.lineHeight = Math.round(newHeight * 10) / 10
+  updateSettings()
+}
+
+const adjustMargin = (delta) => {
+  const newMargin = Math.min(Math.max(10, settings.value.pageMargin + delta), 80)
+  settings.value.pageMargin = newMargin
+  updateSettings()
+}
+
+const updateSettings = () => {
+  // 保存设置到本地存储
+  localStorage.setItem('reader_settings', JSON.stringify(settings.value))
+  calculatePages()
+}
+
+const loadSettings = () => {
+  try {
+    const savedSettings = localStorage.getItem('reader_settings')
+    if (savedSettings) {
+      settings.value = { ...settings.value, ...JSON.parse(savedSettings) }
+    }
+  } catch (error) {
+    console.error('加载阅读设置失败:', error)
+  }
+}
+
+const resetSettings = () => {
+  settings.value = {
+    fontSize: 16,
+    lineHeight: 1.5,
+    fontFamily: 'system',
+    theme: 'light',
+    pageMargin: 20,
+    maxWidth: 800,
+    showChapterTitle: true,
+    enablePageAnimation: true,
+    autoSaveProgress: true,
+    enableKeyboardShortcuts: true,
+    enableClickTurn: true
+  }
+  updateSettings()
+  showInfo('已重置阅读设置')
+}
+
+const exportSettings = () => {
+  try {
+    const settingsJson = JSON.stringify(settings.value, null, 2)
+    const blob = new Blob([settingsJson], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'reader_settings.json'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    showSuccess('设置已导出')
+  } catch (error) {
+    console.error('导出设置失败:', error)
+    showError('导出设置失败: ' + error.message)
+  }
+}
+
+const importSettings = (event) => {
+  try {
+    const file = event.target.files[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
       try {
-        // 临时数据用于展示
-        book.value = {
-          id: bookId,
-          title: '红楼梦',
-          author: '曹雪芹',
-          reading_progress: 0.3
+        const data = JSON.parse(e.target.result)
+        if (data) {
+          settings.value = { ...settings.value, ...data }
+          updateSettings()
+          calculatePages()
+          showSuccess('设置导入成功')
         }
-        
-        // 模拟章节数据
-        chapters.value = [
-          { id: '1', title: '第一回 甄士隐梦幻识通灵 贾雨村风尘怀闺秀' },
-          { id: '2', title: '第二回 贾夫人仙逝扬州城 冷子兴演说荣国府' },
-          { id: '3', title: '第三回 托内兄如海荐西宾 接外孙贾母惜孤女' }
-        ]
-        
-        // 模拟长文本内容
-        content.value = `第一回 甄士隐梦幻识通灵 贾雨村风尘怀闺秀
-
-列位看官：你道此书从何而来？说起根由虽近荒唐，细按则深有趣味。待在下将此来历注明，方使阅者了然不惑。
-
-原来女娲氏炼石补天之时，于大荒山无稽崖练成高经十二丈、方经二十四丈顽石三万六千五百零一块。娲皇氏只用了三万六千五百块，只单单剩了一块未用，便弃在此山青埂峰下。
-
-谁知此石自经锻炼之后，灵性已通，因见众石俱得补天，独自己无材不堪入选，遂自怨自叹，日夜悲号惭愧。
-
-一日，正当嗟悼之际，俄见一僧一道远远而来，生得骨格不凡，丰神迥异，说说笑笑来至峰下，坐于石边高谈快论。先是说些云山雾海神仙玄幻之事，后便说到红尘中荣华富贵。
-
-此石听了，不觉打动凡心，也想要到人间去享一享这荣华富贵，但自恨粗蠢，不得已，便口吐人言，向那僧道说道："大师，弟子蠢物，不能见礼了。适闻二位谈那人世间荣耀繁华，心切慕之。弟子质虽粗蠢，性却稍通，况见二师仙形道体，必有补天济世之材，如蒙发一点慈心，携带弟子得入红尘，在那富贵场中、温柔乡里受享几年，自当永佩洪恩，万劫不忘也。"
-
-二仙师听毕，齐憨笑道："善哉，善哉！那红尘中有却有些乐事，但不能永远依恃，况又有'美中不足，好事多磨'八个字紧相连属，瞬息间则又乐极悲生，人非物换，究竟是到头一梦，万境归空，倒不如不去的好。"
-
-这石凡心已炽，那里听得进这话去，乃复苦求再四。二仙知不可强制，乃叹道："此亦静极思动，无中生有之数也。既如此，我们便携你去受享受享，只是到不得意时，切莫后悔。"
-
-石道："自然，自然。"
-
-那僧又道："若说你性灵，却又如此质蠢，并更无奇贵之处，如此也只好踮脚而已。也罢，我如今大施佛法助你助你，待劫终之日，复还本质，以了此案。你道好否？"
-
-石头听了，感谢不尽。那僧便念咒书符，大展幻术，将一块大石登时变成一块鲜明莹洁的美玉，且又缩成扇坠大小的可佩可拿。那僧托于掌上，笑道："形体倒也是个宝物了！还只没有实在的好处，须得再镌上数字，使人一见便知是奇物方妙。然后携你到那昌明隆盛之邦，诗礼簪缨之族，花柳繁华地，温柔富贵乡去安身乐业。"
-
-石头听了，喜不能禁，乃问："不知赐了弟子那几件奇处，又不知携了弟子到何地方？望乞明示，使弟子不惑。"
-
-那僧笑道："你且莫问，日后自然明白的。"说着，便袖了这石，同那道人飘然而去，竟不知投奔何方何舍。
-
-后来，又不知过了几世几劫，因有个空空道人访道求仙，忽从这大荒山无稽崖青埂峰下经过，忽见一大块石上字迹分明，编述历历。空空道人乃从头一看，原来就是无材补天，幻形入世，蒙茫茫大士、渺渺真人携入红尘，历尽离合悲欢炎凉世态的一段故事。
-
-后面又有一首偈云：
-
-无材可去补苍天，枉入红尘若许年。
-此系身前身后事，倩谁记去作奇传？
-
-诗后便说：后因曹雪芹于悼红轩中披阅十载，增删五次，纂成目录，分出章回，则题曰《金陵十二钗》。并题一绝云：
-
-满纸荒唐言，一把辛酸泪！
-都云作者痴，谁解其中味？
-
-出则既明，且看石上是何故事。按那石上书云：
-
-当日地陷东南，这东南一隅有处曰姑苏，有城曰阊门者，最是红尘中一二等富贵风流之地。这阊门外有个十里街，街内有个仁清巷，巷内有个古庙，因地方窄狭，人皆呼作葫芦庙。庙旁住着一家乡宦，姓甄，名费，字士隐。嫡妻封氏，情性贤淑，深明礼义。家中虽不甚富贵，然本地便也推他为望族了。
-
-因这甄士隐禀性恬淡，不以功名为念，每日只以观花修竹、酌酒吟诗为乐，倒是神仙一流人品。只是一件不足：如今年已半百，膝下无儿，只有一女，乳名英莲，年方三岁，生得粉妆玉琢，乖觉可喜。
-
-一日，炎夏永昼，士隐于书房闲坐，至手倦抛书，伏几盹睡，不觉朦胧睡去。梦至一处，不辨是何地方，忽见那厢来了一僧一道，且行且谈。
-
-只听道人问道："你携了这蠢物，意欲何往？"
-
-那僧笑道："你放心，如今现有一段风流公案正该了结，这一干风流冤家，尚未投胎入世。趁此机会，就将此蠢物夹带于中，使他去经历经历。"
-
-那道人道："原来近日风流冤孽又将造劫历世去不成？但不知落于何方何处？"
-
-那僧道："此事说来好笑，竟是那些精怪化人，来到世上，爱上几个美人，恋恋不舍，满心中意淫意恶，遂凝结成胎，化作此山中这一块顽石，上面撰满了他半世亲见亲闻的这些女子，便借通灵之说，编述一集，以告天下人。虽我未学，下笔无文，又何妨用假语村言，敷演出一段故事来，亦可使闺阁昭传，复可悦世之目，破人愁闷，不亦宜乎？"
-
-故曰："贾不假，白玉为堂金作马。阿房宫，三百里，住不下金陵一个史。东海缺少白玉床，龙王来请金陵王。丰年好大雪，珍珠如土金如铁。"
-
-又有护官符云：
-
-贾不假，白玉为堂金作马。
-阿房宫，三百里，住不下金陵一个史。
-东海缺少白玉床，龙王来请金陵王。
-丰年好大雪，珍珠如土金如铁。
-
-这四家皆连络有亲，一损皆损，一荣皆荣，扶持遮饰，俱有照应的。
-
-今且说甄士隐夫妇，因见女儿一日长似一日，生得袅娜纤巧，不胜怜爱，便是稍有些不遂心的事，见了女儿的乖巧可爱，便连烦恼也忘了。这日正是元宵佳节，士隐命家人霍启抱了英莲去看社火花灯，半夜中霍启因要小解，便将英莲放在一家门槛上坐着，待他小解完了来抱时，哪有英莲的踪影？
-
-急得霍启直寻了半夜，至天明不见，那霍启也就不敢回来见主人，便逃往他乡去了。
-
-那士隐夫妇，见女儿一夜不归，便知有些不妥，再使几个人去寻找，回来皆云连音信皆无。夫妻二人，半世只生此女，一旦失落，岂不思想，因此昼夜啼哭，几乎不曾寻死。
-
-看看一月，士隐先已哭病，那封氏也因思女构疾。一日，炎夏永昼，士隐坐于书房中，至手倦抛书，伏几少憩，不觉朦胧睡去。
-
-梦至一处，不辨是何地方。忽见那厢来了一僧一道，且行且谈。只听道人问道："你携了这蠢物，意欲何往？"
-
-那僧笑道："你放心，如今现有一段风流公案正该了结，这一干风流冤家，尚未投胎入世。趁此机会，就将此蠢物夹带于中，使他去经历经历。"
-
-那道人道："原来近日风流冤孽又将造劫历世去不成？但不知落于何方何处？"
-
-那僧道："此事说来好笑..."`
-        
-        calculatePages()
-        
       } catch (error) {
-        console.error('加载图书失败:', error)
-      } finally {
-        loading.value = false
+        console.error('解析设置文件失败:', error)
+        showError('导入失败: 无效的设置文件')
       }
     }
+    reader.readAsText(file)
+  } catch (error) {
+    console.error('导入设置失败:', error)
+    showError('导入设置失败: ' + error.message)
+  }
+}
 
-    const calculatePages = () => {
-      // 简化的页数计算
-      const wordsPerPage = 800
-      const wordCount = content.value.length
-      totalPages.value = Math.max(1, Math.ceil(wordCount / wordsPerPage))
-    }
-
-    // 设置相关方法
-    const toggleSettings = () => {
-      showSettings.value = !showSettings.value
-      showToc.value = false
-    }
-
-    const toggleToc = () => {
-      showToc.value = !showToc.value
-      showSettings.value = false
-      showSearch.value = false
-      showBookmarks.value = false
-    }
-
-    const toggleSearch = () => {
-      showSearch.value = !showSearch.value
-      showSettings.value = false
-      showToc.value = false
-      showBookmarks.value = false
-    }
-
-    const toggleBookmarks = () => {
-      showBookmarks.value = !showBookmarks.value
-      showSettings.value = false
-      showToc.value = false
-      showSearch.value = false
-    }
-
-    const toggleFullscreen = () => {
-      isFullscreen.value = !isFullscreen.value
-      
-      if (isFullscreen.value) {
-        document.documentElement.requestFullscreen?.()
-      } else {
-        document.exitFullscreen?.()
-      }
-    }
-
-    const setTheme = (theme) => {
-      settings.value.theme = theme
-      updateSettings()
-    }
-
-    const adjustFontSize = (delta) => {
-      const newSize = validateSettingsValue('fontSize', settings.value.fontSize + delta)
-      settings.value.fontSize = newSize
-      updateSettings()
-    }
-
-    const adjustLineHeight = (delta) => {
-      const newHeight = validateSettingsValue('lineHeight', settings.value.lineHeight + delta)
-      settings.value.lineHeight = Math.round(newHeight * 10) / 10
-      updateSettings()
-    }
-
-    const adjustMargin = (delta) => {
-      const newMargin = validateSettingsValue('pageMargin', settings.value.pageMargin + delta)
-      settings.value.pageMargin = newMargin
-      updateSettings()
-    }
-
-    const updateSettings = () => {
-      settingsManager.update(settings.value)
-      calculatePages()
-    }
-
-    const loadSettings = () => {
-      settings.value = settingsManager.load()
-    }
-
-    const resetSettings = () => {
-      settingsManager.reset()
-      settings.value = settingsManager.get()
-      calculatePages()
-    }
-
-    const exportSettings = () => {
-      const data = settingsManager.export()
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `reader-settings-${new Date().toISOString().split('T')[0]}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    }
-
-    const importSettings = (event) => {
-      const file = event.target.files[0]
-      if (!file) return
-      
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        try {
-          const data = JSON.parse(e.target.result)
-          if (settingsManager.import(data)) {
-            settings.value = settingsManager.get()
-            calculatePages()
-            console.log('设置导入成功')
-          } else {
-            console.error('设置文件格式不正确')
-          }
-        } catch (error) {
-          console.error('导入设置失败:', error)
-        }
-      }
-      reader.readAsText(file)
-    }
-
-    // 翻页相关方法
-    const previousPage = () => {
-      if (canGoPrevious.value) {
-        currentPage.value--
-        saveReadingProgress()
-      } else if (hasPreviousChapter.value) {
-        previousChapter()
-      }
-    }
-
-    const nextPage = () => {
-      if (canGoNext.value) {
-        currentPage.value++
-        saveReadingProgress()
-      } else if (hasNextChapter.value) {
-        nextChapter()
-      }
-    }
-
-    const previousChapter = () => {
-      if (hasPreviousChapter.value) {
-        currentChapterIndex.value--
-        currentPage.value = 0
-        // 这里应该加载新章节内容
-        saveReadingProgress()
-      }
-    }
-
-    const nextChapter = () => {
-      if (hasNextChapter.value) {
-        currentChapterIndex.value++
-        currentPage.value = 0
-        // 这里应该加载新章节内容
-        saveReadingProgress()
-      }
-    }
-
-    const goToChapter = (index) => {
-      if (index >= 0 && index < chapters.value.length) {
-        currentChapterIndex.value = index
-        currentPage.value = 0
-        showToc.value = false
-        // 这里应该加载新章节内容
-        saveReadingProgress()
-      }
-    }
-
-    const handleProgressClick = (event) => {
-      const rect = event.currentTarget.getBoundingClientRect()
-      const clickX = event.clientX - rect.left
-      const progress = clickX / rect.width
-      const targetPage = Math.floor(progress * totalPages.value)
-      
-      currentPage.value = Math.max(0, Math.min(totalPages.value - 1, targetPage))
+// 翻页相关方法
+const previousPage = () => {
+  if (canGoPrevious.value) {
+    currentPage.value--
+    if (settings.value.autoSaveProgress) {
       saveReadingProgress()
     }
+  } else if (hasPreviousChapter.value) {
+    previousChapter()
+  }
+}
 
-    const goToPosition = (position) => {
-      const targetPage = Math.floor(position * totalPages.value)
-      currentPage.value = Math.max(0, Math.min(totalPages.value - 1, targetPage))
+const nextPage = () => {
+  if (canGoNext.value) {
+    currentPage.value++
+    if (settings.value.autoSaveProgress) {
       saveReadingProgress()
     }
+  } else if (hasNextChapter.value) {
+    nextChapter()
+  }
+}
 
-    // 书签功能
-    const loadBookmarks = async () => {
-      if (!book.value) return
-      
-      try {
-        // 这里应该调用后端API加载书签
-        // const bookmarksData = await invoke('get_bookmarks', { bookId: book.value.id })
-        
-        // 临时从本地存储加载
-        const saved = localStorage.getItem(`bookmarks_${book.value.id}`)
-        if (saved) {
-          bookmarks.value = JSON.parse(saved)
-        }
-      } catch (error) {
-        console.error('加载书签失败:', error)
-      }
-    }
+const previousChapter = () => {
+  if (hasPreviousChapter.value) {
+    loadChapterContent(currentChapterIndex.value - 1)
+  }
+}
 
-    const addBookmark = async (bookmarkData) => {
-      if (!book.value) return
-      
-      try {
-        const bookmark = {
-          id: Date.now().toString(),
-          bookId: book.value.id,
-          position: bookmarkData.position,
-          note: bookmarkData.note || '',
-          content_preview: getContentPreview(bookmarkData.position),
-          created_at: Date.now()
-        }
-        
-        // 这里应该调用后端API保存书签
-        // await invoke('add_bookmark', bookmark)
-        
-        // 临时保存到本地存储
-        bookmarks.value.push(bookmark)
-        localStorage.setItem(`bookmarks_${book.value.id}`, JSON.stringify(bookmarks.value))
-        
-        console.log('书签添加成功')
-      } catch (error) {
-        console.error('添加书签失败:', error)
-      }
-    }
+const nextChapter = () => {
+  if (hasNextChapter.value) {
+    loadChapterContent(currentChapterIndex.value + 1)
+  }
+}
 
-    const deleteBookmark = async (bookmarkId) => {
-      try {
-        // 这里应该调用后端API删除书签
-        // await invoke('delete_bookmark', { bookmarkId })
-        
-        // 临时从本地存储删除
-        bookmarks.value = bookmarks.value.filter(b => b.id !== bookmarkId)
-        localStorage.setItem(`bookmarks_${book.value.id}`, JSON.stringify(bookmarks.value))
-        
-        console.log('书签删除成功')
-      } catch (error) {
-        console.error('删除书签失败:', error)
-      }
-    }
+const goToChapter = (index) => {
+  if (index >= 0 && index < chapters.value.length) {
+    loadChapterContent(index)
+    showToc.value = false
+  }
+}
 
-    const goToBookmark = (bookmark) => {
-      goToPosition(bookmark.position)
-      showBookmarks.value = false
-    }
-
-    const getContentPreview = (position) => {
-      if (!content.value) return ''
-      
-      const index = Math.floor(position * content.value.length)
-      const start = Math.max(0, index - 50)
-      const end = Math.min(content.value.length, index + 100)
-      
-      return content.value.substring(start, end).trim()
-    }
-
-    // 搜索功能
-    const highlightSearchText = (searchText, options) => {
-      searchHighlight.value = searchText
-      // 这里可以添加更复杂的高亮逻辑
-    }
-
-    const saveReadingProgress = async () => {
-      if (!book.value) return
-      
-      try {
-        const progressData = {
-          bookId: book.value.id,
-          progress: readingProgress.value,
-          chapter: currentChapterIndex.value,
-          page: currentPage.value,
-          position: readingProgress.value,
-          totalPages: totalPages.value
-        }
-        
-        // 使用进度管理器保存
-        progressManager.save(book.value.id, progressData)
-        
-        // 如果有后端API，也可以同时保存到服务器
-        // await invoke('save_reading_progress', progressData)
-      } catch (error) {
-        console.error('保存阅读进度失败:', error)
-      }
-    }
-
-    const loadReadingProgress = () => {
-      if (!book.value) return
-      
-      try {
-        const progressData = progressManager.load(book.value.id)
-        if (progressData) {
-          currentChapterIndex.value = progressData.chapter || 0
-          currentPage.value = progressData.page || 0
-        }
-      } catch (error) {
-        console.error('加载阅读进度失败:', error)
-      }
-    }
-
-    const startAutoSave = () => {
-      if (!book.value || !settings.value.autoSaveProgress) return
-      
-      const getProgressData = () => ({
-        bookId: book.value.id,
-        progress: readingProgress.value,
-        chapter: currentChapterIndex.value,
-        page: currentPage.value,
-        position: readingProgress.value,
-        totalPages: totalPages.value
-      })
-      
-      progressManager.startAutoSave(
-        book.value.id, 
-        getProgressData, 
-        settings.value.saveInterval
-      )
-    }
-
-    const stopAutoSave = () => {
-      progressManager.stopAutoSave()
-    }
-
-    // 事件处理
-    const handleContentClick = (event) => {
-      const rect = readingArea.value?.getBoundingClientRect()
-      if (!rect) return
-      
-      const clickX = event.clientX - rect.left
-      const centerX = rect.width / 2
-      
-      if (clickX < centerX / 2) {
-        previousPage()
-      } else if (clickX > centerX + centerX / 2) {
-        nextPage()
-      }
-    }
-
-    const handleKeydown = (event) => {
-      // 如果正在输入，不处理快捷键
-      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
-        return
-      }
-
-      switch (event.key) {
-        case 'ArrowLeft':
-          if (event.ctrlKey) {
-            previousChapter()
-          } else {
-            previousPage()
-          }
-          event.preventDefault()
-          break
-        case 'ArrowRight':
-          if (event.ctrlKey) {
-            nextChapter()
-          } else {
-            nextPage()
-          }
-          event.preventDefault()
-          break
-        case 'Escape':
-          showSettings.value = false
-          showToc.value = false
-          showSearch.value = false
-          showBookmarks.value = false
-          if (isFullscreen.value) {
-            toggleFullscreen()
-          }
-          break
-        case 'f':
-        case 'F':
-          if (event.ctrlKey) {
-            toggleSearch()
-            event.preventDefault()
-          }
-          break
-        case 'b':
-        case 'B':
-          if (!event.ctrlKey) {
-            toggleBookmarks()
-            event.preventDefault()
-          }
-          break
-        case 's':
-        case 'S':
-          if (!event.ctrlKey) {
-            toggleSettings()
-            event.preventDefault()
-          }
-          break
-        case 't':
-        case 'T':
-          if (!event.ctrlKey) {
-            toggleToc()
-            event.preventDefault()
-          }
-          break
-        case 'F11':
-          toggleFullscreen()
-          event.preventDefault()
-          break
-        case ' ':
-          nextPage()
-          event.preventDefault()
-          break
-      }
-    }
-
-    // 自动隐藏控制栏（全屏模式下）
-    let hideControlsTimer = null
-    const resetHideControlsTimer = () => {
-      if (!isFullscreen.value) return
-      
-      showControls.value = true
-      clearTimeout(hideControlsTimer)
-      hideControlsTimer = setTimeout(() => {
-        showControls.value = false
-      }, 3000)
-    }
-
-    const handleMouseMove = () => {
-      resetHideControlsTimer()
-    }
-
-    // 生命周期
-    onMounted(async () => {
-      loadSettings()
-      await loadBook()
-      loadReadingProgress()
-      await loadBookmarks()
-      
-      // 启动自动保存
-      startAutoSave()
-      
-      document.addEventListener('keydown', handleKeydown)
-      document.addEventListener('mousemove', handleMouseMove)
-      
-      // 显示翻页提示
-      setTimeout(() => {
-        showPageHint.value = true
-        setTimeout(() => {
-          showPageHint.value = false
-        }, 3000)
-      }, 1000)
-    })
-
-    onUnmounted(() => {
-      // 停止自动保存
-      stopAutoSave()
-      
-      // 最后保存一次进度
+const goToPosition = (position) => {
+  if (position >= 0 && position <= 1) {
+    const targetPage = Math.floor(position * totalPages.value)
+    currentPage.value = Math.max(0, Math.min(targetPage, totalPages.value - 1))
+    if (settings.value.autoSaveProgress) {
       saveReadingProgress()
-      
-      document.removeEventListener('keydown', handleKeydown)
-      document.removeEventListener('mousemove', handleMouseMove)
-      clearTimeout(hideControlsTimer)
-    })
-
-    return {
-      // 状态
-      book,
-      content,
-      loading,
-      readingArea,
-      showSettings,
-      showToc,
-      showSearch,
-      showBookmarks,
-      isFullscreen,
-      showControls,
-      showPageHint,
-      currentPage,
-      totalPages,
-      currentChapterIndex,
-      chapters,
-      bookmarks,
-      searchHighlight,
-      settings,
-      themes,
-      
-      // 计算属性
-      currentChapter,
-      showChapterTitle,
-      readingProgress,
-      canGoPrevious,
-      canGoNext,
-      hasPreviousChapter,
-      hasNextChapter,
-      formattedContent,
-      readerStyles,
-      
-      // 方法
-      toggleSettings,
-      toggleToc,
-      toggleSearch,
-      toggleBookmarks,
-      toggleFullscreen,
-      setTheme,
-      adjustFontSize,
-      adjustLineHeight,
-      adjustMargin,
-      updateSettings,
-      previousPage,
-      nextPage,
-      previousChapter,
-      nextChapter,
-      goToChapter,
-      goToPosition,
-      handleProgressClick,
-      handleContentClick,
-      addBookmark,
-      deleteBookmark,
-      goToBookmark,
-      highlightSearchText,
-      resetSettings,
-      exportSettings,
-      importSettings
     }
   }
 }
+
+const goToBookmark = (bookmark) => {
+  try {
+    if (!bookmark) {
+      console.warn('goToBookmark: 无效的书签对象')
+      return
+    }
+
+    console.log('跳转到书签:', bookmark)
+
+    // 简化跳转逻辑，避免复杂的异步操作
+    if (typeof bookmark.position === 'number') {
+      const normalizedPosition = bookmark.position / 10000 // 将整数位置转换为0-1的进度
+      goToPosition(normalizedPosition)
+    }
+
+    showBookmarks.value = false
+  } catch (error) {
+    console.error('跳转书签失败:', error)
+    showError('跳转书签失败')
+  }
+}
+
+const handleProgressClick = (event) => {
+  const rect = event.currentTarget.getBoundingClientRect()
+  if (!rect) return
+
+  const clickX = event.clientX - rect.left
+  const progress = clickX / rect.width
+  goToPosition(progress)
+}
+
+const handleContentClick = (event) => {
+  if (!settings.value.enableClickTurn) return
+
+  const rect = readingArea.value?.getBoundingClientRect()
+  if (!rect) return
+
+  const clickX = event.clientX - rect.left
+  const centerX = rect.width / 2
+
+  if (clickX < centerX / 2) {
+    previousPage()
+  } else if (clickX > centerX + centerX / 2) {
+    nextPage()
+  }
+}
+
+const addBookmark = async (note = '') => {
+  if (!book.value) return
+
+  try {
+    // 将阅读进度转换为整数位置（后端需要整数）
+    const position = Math.round(readingProgress.value * 10000)
+
+    const result = await invoke('add_bookmark', {
+      bookId: book.value.id,
+      position: position,
+      chapterIndex: currentChapterIndex.value,
+      note: note || null
+    })
+
+    if (result) {
+      await loadBookmarks()
+      showSuccess('书签添加成功')
+      return result
+    }
+  } catch (error) {
+    console.error('添加书签失败:', error)
+    showError('添加书签失败: ' + error.message)
+  }
+  return null
+}
+
+const deleteBookmark = async (bookmarkId) => {
+  try {
+    await invoke('delete_bookmark', { bookmarkId })
+    bookmarks.value = bookmarks.value.filter(b => b.id !== bookmarkId)
+    showSuccess('书签删除成功')
+  } catch (error) {
+    console.error('删除书签失败:', error)
+    showError('删除书签失败: ' + error.message)
+  }
+}
+
+const highlightSearchText = (text) => {
+  searchHighlight.value = text
+  // 实现文本高亮逻辑
+}
+
+const saveReadingProgress = async () => {
+  if (!book.value) return
+
+  try {
+    const progressData = {
+      bookId: book.value.id,
+      chapter: currentChapterIndex.value,
+      page: currentPage.value,
+      progress: readingProgress.value,
+      timestamp: Date.now()
+    }
+
+    // 保存到本地存储（临时方案）
+    localStorage.setItem(`reading_progress_${book.value.id}`, JSON.stringify(progressData))
+
+    // 调用后端API保存进度
+    await invoke('save_reading_progress', {
+      bookId: book.value.id,
+      progress: readingProgress.value
+    })
+  } catch (error) {
+    console.error('保存阅读进度失败:', error)
+  }
+}
+
+const loadReadingProgress = async () => {
+  if (!book.value) return
+
+  try {
+    // 先尝试从后端获取进度
+    try {
+      const progress = await invoke('get_reading_progress', { bookId: book.value.id })
+      if (progress !== undefined) {
+        // 计算当前页码
+        const pageIndex = Math.floor(progress * totalPages.value)
+        currentPage.value = Math.min(pageIndex, totalPages.value - 1)
+        return
+      }
+    } catch (e) {
+      console.log('从后端获取进度失败，尝试从本地存储获取')
+    }
+
+    // 如果后端获取失败，尝试从本地存储获取
+    const saved = localStorage.getItem(`reading_progress_${book.value.id}`)
+    if (saved) {
+      const progressData = JSON.parse(saved)
+      currentChapterIndex.value = progressData.chapter || 0
+
+      // 如果章节不同，需要加载对应章节
+      if (currentChapterIndex.value !== 0 && chapters.value[currentChapterIndex.value]) {
+        loadChapterContent(currentChapterIndex.value).then(() => {
+          currentPage.value = progressData.page || 0
+        })
+      } else {
+        currentPage.value = progressData.page || 0
+      }
+    }
+  } catch (error) {
+    console.error('加载阅读进度失败:', error)
+  }
+}
+
+const getContentPreview = (position) => {
+  if (!content.value) return ''
+
+  const index = Math.floor(position * content.value.length)
+  const start = Math.max(0, index - 50)
+  const end = Math.min(content.value.length, index + 100)
+
+  return content.value.substring(start, end).trim()
+}
+
+// 自动隐藏控制栏（全屏模式下）
+let hideControlsTimer = null
+const setHideControlsTimer = () => {
+  clearTimeout(hideControlsTimer)
+  showControls.value = true
+
+  hideControlsTimer = setTimeout(() => {
+    if (isFullscreen.value) {
+      showControls.value = false
+    }
+  }, 3000)
+}
+
+const resetHideControlsTimer = () => {
+  clearTimeout(hideControlsTimer)
+  hideControlsTimer = null
+}
+
+const handleMouseMove = () => {
+  if (!isFullscreen.value) return
+
+  setHideControlsTimer()
+}
+
+// 键盘快捷键处理
+const handleKeydown = (event) => {
+  // 如果正在输入，不处理快捷键
+  if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+    return
+  }
+
+  if (!settings.value.enableKeyboardShortcuts) return
+
+  switch (event.key) {
+    case 'ArrowLeft':
+      if (event.ctrlKey) {
+        previousChapter()
+      } else {
+        previousPage()
+      }
+      event.preventDefault()
+      break
+
+    case 'ArrowRight':
+      if (event.ctrlKey) {
+        nextChapter()
+      } else {
+        nextPage()
+      }
+      event.preventDefault()
+      break
+
+    case 'Escape':
+      if (isFullscreen.value) {
+        toggleFullscreen()
+      }
+      showSettings.value = false
+      showToc.value = false
+      showSearch.value = false
+      showBookmarks.value = false
+      event.preventDefault()
+      break
+
+    case 's':
+    case 'S':
+      if (!event.ctrlKey) {
+        toggleSettings()
+        event.preventDefault()
+      }
+      break
+
+    case 't':
+    case 'T':
+      if (!event.ctrlKey) {
+        toggleToc()
+        event.preventDefault()
+      }
+      break
+
+    case 'F11':
+      toggleFullscreen()
+      event.preventDefault()
+      break
+
+    case 'b':
+    case 'B':
+      if (!event.ctrlKey) {
+        toggleBookmarks()
+        event.preventDefault()
+      }
+      break
+  }
+}
+
+// 显示翻页提示
+const showPageHintTimer = () => {
+  showPageHint.value = true
+
+  setTimeout(() => {
+    showPageHint.value = false
+  }, 3000)
+}
+
+// 生命周期
+onMounted(async () => {
+  loadSettings()
+  await loadBook()
+
+  // 添加事件监听
+  document.addEventListener('keydown', handleKeydown)
+  document.addEventListener('mousemove', handleMouseMove)
+
+  // 显示翻页提示
+  showPageHintTimer()
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('mousemove', handleMouseMove)
+  clearTimeout(hideControlsTimer)
+})
 </script>
 
 <style scoped>
-/* 基础样式 */
 .reader {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-secondary);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   position: relative;
   overflow: hidden;
 }
@@ -1692,69 +1040,49 @@ export default {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  right: 0;
+  bottom: 0;
   z-index: 9999;
 }
 
-/* 头部样式 */
+/* 阅读器头部 */
 .reader-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 1rem 2rem;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-color);
-  transition: all 0.3s ease;
-  z-index: 100;
-}
-
-.back-btn {
-  display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background: none;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  transition: all 0.3s ease;
-  color: var(--text-primary);
-}
-
-.back-btn:hover {
-  background-color: var(--sidebar-hover);
-}
-
-.back-btn .icon {
-  font-size: 1.2rem;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  transition: opacity 0.3s ease;
 }
 
 .book-info {
   flex: 1;
-  text-align: center;
-  margin: 0 2rem;
+  margin: 0 1.5rem;
+  min-width: 0;
 }
 
 .book-info h2 {
-  margin: 0 0 0.25rem 0;
-  color: var(--text-primary);
   font-size: 1.2rem;
   font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .author {
+  font-size: 0.85rem;
   color: var(--text-secondary);
-  font-size: 0.9rem;
-  display: block;
-  margin-bottom: 0.25rem;
+  margin-right: 1rem;
 }
 
 .chapter-info {
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  display: block;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .reader-controls {
@@ -1762,95 +1090,67 @@ export default {
   gap: 0.5rem;
 }
 
-.control-btn {
-  display: flex;
-  align-items: center;
-  background: none;
-  border: 1px solid var(--border-color);
-  padding: 0.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: var(--text-secondary);
-  min-width: 40px;
-  justify-content: center;
-}
-
-.control-btn:hover {
-  background-color: var(--sidebar-hover);
-  border-color: var(--accent-color);
-  color: var(--accent-color);
-}
-
-.control-btn .icon {
-  font-size: 1.1rem;
-}
-
-/* 主内容区域 */
+/* 主要阅读区域 */
 .reader-content {
   flex: 1;
-  display: flex;
   position: relative;
   overflow: hidden;
+  background-color: var(--bg-primary);
 }
 
 .reading-area {
-  flex: 1;
+  height: 100%;
   overflow-y: auto;
+  position: relative;
+  padding: 2rem;
   transition: all 0.3s ease;
-  position: relative;
-  cursor: pointer;
 }
 
-.content-container {
-  min-height: 100%;
-  position: relative;
-}
-
-.chapter-title {
-  text-align: center;
-  margin: 2rem 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  border-bottom: 2px solid var(--border-color);
-  padding-bottom: 1rem;
-}
-
-.content-text {
-  text-align: justify;
-  word-wrap: break-word;
-  hyphens: auto;
-}
-
-.content-text p {
-  margin: 1em 0;
-  text-indent: 2em;
-}
-
-/* 加载状态 */
 .loading {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   height: 100%;
-  color: var(--text-secondary);
 }
 
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid var(--border-color);
-  border-top: 3px solid var(--accent-color);
+  border: 3px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  border-top-color: var(--accent-color);
+  animation: spin 1s ease-in-out infinite;
   margin-bottom: 1rem;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.content-container {
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.chapter-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.content-text {
+  line-height: 1.8;
+  text-align: justify;
+}
+
+.content-text p {
+  margin-bottom: 1rem;
+  text-indent: 2em;
 }
 
 /* 翻页区域 */
@@ -1861,17 +1161,16 @@ export default {
   right: 0;
   bottom: 0;
   pointer-events: none;
-  z-index: 1;
 }
 
 .page-turn-left,
 .page-turn-right {
   position: absolute;
   top: 0;
-  bottom: 0;
-  width: 25%;
-  pointer-events: all;
+  height: 100%;
+  width: 20%;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .page-turn-left {
@@ -1882,262 +1181,176 @@ export default {
   right: 0;
 }
 
-.page-turn-left:hover,
-.page-turn-right:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
 /* 翻页提示 */
 .page-hint {
-  position: fixed;
-  bottom: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.8);
+  position: absolute;
+  bottom: 2rem;
+  right: 2rem;
+  background-color: rgba(0, 0, 0, 0.7);
   color: white;
   padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  z-index: 1000;
-  animation: fadeInOut 3s ease-in-out;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  animation: fadeIn 0.5s ease-in-out;
 }
 
-@keyframes fadeInOut {
-  0%, 100% { opacity: 0; }
-  20%, 80% { opacity: 1; }
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
-/* 侧边面板 */
+/* 设置面板 */
 .settings-panel,
 .toc-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
   width: 320px;
-  background: var(--bg-primary);
-  border-left: 1px solid var(--border-color);
+  height: 100%;
+  background-color: var(--bg-secondary);
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  z-index: 50;
 }
 
 .panel-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 1.5rem;
+  align-items: center;
+  padding: 1rem;
   border-bottom: 1px solid var(--border-color);
 }
 
 .panel-header h3 {
   margin: 0;
-  color: var(--text-primary);
   font-size: 1.1rem;
   font-weight: 600;
 }
 
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: var(--text-secondary);
-  padding: 0.25rem;
-  border-radius: 4px;
-  transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-  background-color: var(--sidebar-hover);
-  color: var(--text-primary);
-}
-
-.settings-content,
-.toc-content {
-  flex: 1;
+.settings-content {
+  padding: 1rem;
   overflow-y: auto;
-  padding: 1.5rem;
 }
 
-/* 设置组件 */
 .setting-group {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .setting-group label {
   display: block;
-  margin-bottom: 0.75rem;
-  color: var(--text-primary);
   font-weight: 500;
-  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
 }
 
 .range-control {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .adjust-btn {
-  background: var(--bg-secondary);
+  width: 24px;
+  height: 24px;
   border: 1px solid var(--border-color);
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
+  background: var(--bg-primary);
+  border-radius: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  color: var(--text-primary);
-  transition: all 0.3s ease;
-}
-
-.adjust-btn:hover {
-  background-color: var(--accent-color);
-  color: white;
-  border-color: var(--accent-color);
 }
 
 .range-input {
   flex: 1;
-  height: 6px;
-  background: var(--border-color);
-  border-radius: 3px;
-  outline: none;
-  -webkit-appearance: none;
-}
-
-.range-input::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
-  background: var(--accent-color);
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.range-input::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  background: var(--accent-color);
-  border-radius: 50%;
-  cursor: pointer;
-  border: none;
 }
 
 .value {
-  min-width: 60px;
+  min-width: 50px;
   text-align: right;
+  font-size: 0.85rem;
   color: var(--text-secondary);
-  font-size: 0.9rem;
 }
 
 .select-input {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.5rem;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--bg-secondary);
+  border-radius: 4px;
+  background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 0.9rem;
 }
 
-.select-input:focus {
-  outline: none;
-  border-color: var(--accent-color);
-}
-
-/* 主题选择 */
 .theme-options {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.5rem;
 }
 
 .theme-btn {
-  padding: 0.75rem;
-  border: 2px solid transparent;
-  border-radius: 6px;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: all 0.3s ease;
   text-align: center;
-}
-
-.theme-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .theme-btn.active {
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 1px var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
-/* 复选框 */
 .checkbox-label {
-  display: flex !important;
+  display: flex;
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
-  margin-bottom: 0 !important;
 }
 
-.checkbox-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent-color);
-}
-
-/* 设置操作按钮 */
 .setting-actions {
   display: flex;
-  flex-direction: column;
   gap: 0.5rem;
 }
 
 .action-btn {
-  padding: 0.5rem 1rem;
+  flex: 1;
+  padding: 0.5rem;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  text-align: center;
-  transition: all 0.3s ease;
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-align: center;
 }
 
-.action-btn:hover {
-  background-color: var(--sidebar-hover);
-  border-color: var(--accent-color);
+.reset-btn {
+  color: var(--error-color);
 }
 
-.reset-btn:hover {
-  background-color: var(--error-color);
-  color: white;
-  border-color: var(--error-color);
-}
-
-.export-btn:hover {
-  background-color: var(--success-color);
-  color: white;
-  border-color: var(--success-color);
-}
-
+.export-btn,
 .import-btn {
-  position: relative;
-  overflow: hidden;
+  color: var(--accent-color);
 }
 
-.import-btn:hover {
-  background-color: var(--accent-color);
-  color: white;
-  border-color: var(--accent-color);
+/* 目录面板 */
+.toc-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
 }
 
-/* 目录 */
 .toc-list {
-  max-height: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .toc-item {
@@ -2145,83 +1358,63 @@ export default {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  margin-bottom: 0.25rem;
+  transition: background-color 0.2s ease;
 }
 
 .toc-item:hover {
-  background-color: var(--sidebar-hover);
+  background-color: var(--bg-hover);
 }
 
 .toc-item.active {
+  background-color: var(--accent-color-light);
+  color: var(--accent-color);
+}
+
+.chapter-number {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-primary);
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.toc-item.active .chapter-number {
   background-color: var(--accent-color);
   color: white;
 }
 
-.chapter-number {
-  min-width: 24px;
-  height: 24px;
-  background: var(--border-color);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.toc-item.active .chapter-number {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-.chapter-title {
-  flex: 1;
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
-
-/* 底部控制栏 */
+/* 阅读器底部 */
 .reader-footer {
-  background: var(--bg-primary);
+  padding: 0.75rem 1.5rem;
+  background-color: var(--bg-secondary);
   border-top: 1px solid var(--border-color);
-  padding: 1rem 2rem;
-  display: flex;
-  align-items: center;
-  gap: 2rem;
-  z-index: 100;
+  transition: opacity 0.3s ease;
 }
 
 .progress-section {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .progress-info {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  font-size: 0.9rem;
+  justify-content: space-between;
+  font-size: 0.85rem;
   color: var(--text-secondary);
-  min-width: 120px;
+  margin-bottom: 0.5rem;
 }
 
 .progress-bar {
-  flex: 1;
-  height: 6px;
+  height: 4px;
   background-color: var(--border-color);
-  border-radius: 3px;
+  border-radius: 2px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.progress-bar:hover {
-  height: 8px;
 }
 
 .progress-fill {
@@ -2232,57 +1425,21 @@ export default {
 
 .navigation-controls {
   display: flex;
-  gap: 0.5rem;
-}
-
-.nav-btn {
-  background: var(--accent-color);
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  min-width: 70px;
-}
-
-.nav-btn:hover:not(:disabled) {
-  background-color: var(--accent-hover);
-  transform: translateY(-1px);
-}
-
-.nav-btn:disabled {
-  background-color: var(--border-color);
-  color: var(--text-muted);
-  cursor: not-allowed;
-  transform: none;
-}
-
-.chapter-btn {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-}
-
-.chapter-btn:hover:not(:disabled) {
-  background-color: var(--sidebar-hover);
-  border-color: var(--accent-color);
+  justify-content: center;
+  gap: 0.75rem;
 }
 
 /* 错误状态 */
 .error-state {
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  background: var(--bg-secondary);
+  background-color: var(--bg-primary);
 }
 
 .error-content {
   text-align: center;
-  max-width: 400px;
   padding: 2rem;
 }
 
@@ -2292,42 +1449,22 @@ export default {
 }
 
 .error-content h3 {
-  color: var(--text-primary);
+  font-size: 1.5rem;
   margin-bottom: 0.5rem;
 }
 
 .error-content p {
   color: var(--text-secondary);
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
-.btn {
-  background: var(--accent-color);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.btn:hover {
-  background-color: var(--accent-hover);
-  transform: translateY(-1px);
-}
-
-/* 过渡动画 */
+/* 动画 */
 .slide-left-enter-active,
 .slide-left-leave-active {
   transition: transform 0.3s ease;
 }
 
-.slide-left-enter-from {
-  transform: translateX(100%);
-}
-
+.slide-left-enter-from,
 .slide-left-leave-to {
   transform: translateX(100%);
 }
@@ -2335,52 +1472,28 @@ export default {
 /* 响应式设计 */
 @media (max-width: 768px) {
   .reader-header {
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 1rem;
   }
-  
+
   .book-info {
-    margin: 0 1rem;
+    margin: 0 0.5rem;
   }
-  
+
   .book-info h2 {
     font-size: 1rem;
   }
-  
+
+  .reader-controls {
+    gap: 0.25rem;
+  }
+
   .settings-panel,
   .toc-panel {
-    width: 280px;
+    width: 100%;
   }
-  
-  .reader-footer {
-    padding: 0.75rem 1rem;
-    gap: 1rem;
-  }
-  
+
   .navigation-controls {
     flex-wrap: wrap;
-  }
-  
-  .nav-btn {
-    min-width: 60px;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.8rem;
-  }
-}
-
-@media (max-width: 640px) {
-  .settings-panel,
-  .toc-panel {
-    width: 100vw;
-  }
-  
-  .progress-info {
-    flex-direction: column;
-    gap: 0.25rem;
-    min-width: 80px;
-  }
-  
-  .theme-options {
-    grid-template-columns: 1fr;
   }
 }
 </style>

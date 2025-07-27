@@ -2,11 +2,14 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { invoke } from '@tauri-apps/api/core'
+import { useToast } from './composables/useToast'
 import router from './router'
-import Toast from './components/Toast.vue'
 import ThemeToggle from './components/ThemeToggle.vue'
+// Toast组件已全局注册，无需导入
 
 const route = useRoute()
+// toastState和hideToast在模板中使用，不是未使用的变量
+const { toastState, hideToast } = useToast()
 
 // 导航菜单项
 const menuItems = [
@@ -80,7 +83,13 @@ onMounted(() => {
     </main>
 
     <!-- 全局 Toast 组件 -->
-    <Toast />
+    <Toast 
+      v-if="toastState.show" 
+      :message="toastState.message" 
+      :type="toastState.type" 
+      :duration="toastState.duration"
+      @close="hideToast" 
+    />
   </div>
 </template>
 

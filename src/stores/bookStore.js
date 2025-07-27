@@ -29,23 +29,23 @@ export const useBookStore = defineStore('book', {
 
   getters: {
     // 获取正在阅读的图书
-    readingBooks: (state) => 
+    readingBooks: (state) =>
       state.books.filter(book => book.reading_progress > 0 && book.reading_progress < 1),
-    
+
     // 获取已完成的图书
-    completedBooks: (state) => 
+    completedBooks: (state) =>
       state.books.filter(book => book.reading_progress >= 1),
-    
+
     // 获取未开始的图书
-    unreadBooks: (state) => 
+    unreadBooks: (state) =>
       state.books.filter(book => book.reading_progress === 0),
-    
+
     // 根据搜索查询过滤图书
     searchResults: (state) => {
       if (!state.searchQuery) return state.books
-      
+
       const query = state.searchQuery.toLowerCase()
-      return state.books.filter(book => 
+      return state.books.filter(book =>
         book.title.toLowerCase().includes(query) ||
         (book.author && book.author.toLowerCase().includes(query))
       )
@@ -140,10 +140,15 @@ export const useBookStore = defineStore('book', {
         return book
       }
 
+      // 如果本地没有找到，从所有图书中查找
       try {
-        const book = await invoke('get_book_by_id', { bookId })
-        this.currentBook = book
-        return book
+        await this.loadBooks()
+        const book = this.books.find(b => b.id === bookId)
+        if (book) {
+          this.currentBook = book
+          return book
+        }
+        throw new Error('图书不存在')
       } catch (error) {
         console.error('获取图书详情失败:', error)
         throw error
@@ -154,19 +159,19 @@ export const useBookStore = defineStore('book', {
     async updateReadingProgress(bookId, progress) {
       try {
         await invoke('save_reading_progress', { bookId, progress })
-        
+
         // 更新本地状态
         const book = this.books.find(b => b.id === bookId)
         if (book) {
           book.reading_progress = progress
           book.last_read = new Date().toISOString()
         }
-        
+
         if (this.currentBook && this.currentBook.id === bookId) {
           this.currentBook.reading_progress = progress
           this.currentBook.last_read = new Date().toISOString()
         }
-        
+
         this.updateStats()
         this.updateRecentBooks()
       } catch (error) {

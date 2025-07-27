@@ -1,45 +1,67 @@
 <template>
-  <div class="loading-container" :class="{ 'loading-overlay': overlay, 'loading-inline': !overlay }">
+  <div class="loading-container" :class="{ 'loading-overlay': overlay }">
     <div class="loading-content">
-      <div class="loading-spinner" :class="sizeClass">
-        <div class="spinner-ring"></div>
-        <div class="spinner-ring"></div>
-        <div class="spinner-ring"></div>
-        <div class="spinner-ring"></div>
+      <!-- 加载动画 -->
+      <div class="loading-spinner" :class="[`spinner-${type}`, `spinner-${size}`]">
+        <div v-if="type === 'dots'" class="dots-spinner">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+        <div v-else-if="type === 'circle'" class="circle-spinner"></div>
+        <div v-else-if="type === 'pulse'" class="pulse-spinner"></div>
+        <div v-else class="default-spinner"></div>
       </div>
-      <div v-if="text" class="loading-text">{{ text }}</div>
+      
+      <!-- 加载文本 -->
+      <div v-if="message" class="loading-message">
+        {{ message }}
+      </div>
+      
+      <!-- 进度条 -->
+      <div v-if="showProgress && progress >= 0" class="loading-progress">
+        <div class="progress-bar">
+          <div 
+            class="progress-fill" 
+            :style="{ width: progress + '%' }"
+          ></div>
+        </div>
+        <div class="progress-text">{{ Math.round(progress) }}%</div>
+      </div>
     </div>
   </div>
 </template>
 
-<script>
-import { computed } from 'vue'
-
-export default {
-  name: 'Loading',
-  props: {
-    text: {
-      type: String,
-      default: ''
-    },
-    size: {
-      type: String,
-      default: 'medium',
-      validator: (value) => ['small', 'medium', 'large'].includes(value)
-    },
-    overlay: {
-      type: Boolean,
-      default: false
-    }
+<script setup>
+// Props
+const props = defineProps({
+  message: {
+    type: String,
+    default: '加载中...'
   },
-  setup(props) {
-    const sizeClass = computed(() => `loading-${props.size}`)
-
-    return {
-      sizeClass
-    }
+  type: {
+    type: String,
+    default: 'circle', // 'dots', 'circle', 'pulse', 'default'
+    validator: (value) => ['dots', 'circle', 'pulse', 'default'].includes(value)
+  },
+  size: {
+    type: String,
+    default: 'medium', // 'small', 'medium', 'large'
+    validator: (value) => ['small', 'medium', 'large'].includes(value)
+  },
+  overlay: {
+    type: Boolean,
+    default: false
+  },
+  progress: {
+    type: Number,
+    default: -1 // -1 表示不显示进度
+  },
+  showProgress: {
+    type: Boolean,
+    default: false
   }
-}
+})
 </script>
 
 <style scoped>
@@ -47,6 +69,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 2rem;
 }
 
 .loading-overlay {
@@ -55,12 +78,9 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.8);
   z-index: 999;
-}
-
-.loading-inline {
-  padding: 2rem;
+  backdrop-filter: blur(2px);
 }
 
 .loading-content {
@@ -70,84 +90,155 @@ export default {
   gap: 1rem;
 }
 
+/* 加载动画基础样式 */
 .loading-spinner {
-  position: relative;
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.loading-small {
+.spinner-small {
   width: 24px;
   height: 24px;
 }
 
-.loading-medium {
+.spinner-medium {
   width: 40px;
   height: 40px;
 }
 
-.loading-large {
-  width: 60px;
-  height: 60px;
+.spinner-large {
+  width: 56px;
+  height: 56px;
 }
 
-.spinner-ring {
-  position: absolute;
-  border: 3px solid transparent;
-  border-top: 3px solid var(--primary-color);
+/* 点状加载动画 */
+.dots-spinner {
+  display: flex;
+  gap: 4px;
+}
+
+.dots-spinner .dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  background-color: var(--accent-color);
+  animation: dotsBounce 1.4s ease-in-out infinite both;
 }
 
-.loading-small .spinner-ring {
-  width: 24px;
-  height: 24px;
-  border-width: 2px;
-  border-top-width: 2px;
+.dots-spinner .dot:nth-child(1) { animation-delay: -0.32s; }
+.dots-spinner .dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes dotsBounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
 }
 
-.loading-medium .spinner-ring {
-  width: 40px;
-  height: 40px;
-  border-width: 3px;
-  border-top-width: 3px;
+/* 圆形加载动画 */
+.circle-spinner {
+  width: 100%;
+  height: 100%;
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--accent-color);
+  border-radius: 50%;
+  animation: circleRotate 1s linear infinite;
 }
 
-.loading-large .spinner-ring {
-  width: 60px;
-  height: 60px;
-  border-width: 4px;
-  border-top-width: 4px;
+@keyframes circleRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-.spinner-ring:nth-child(1) {
-  animation-delay: -0.45s;
+/* 脉冲加载动画 */
+.pulse-spinner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: var(--accent-color);
+  animation: pulseScale 1.5s ease-in-out infinite;
 }
 
-.spinner-ring:nth-child(2) {
-  animation-delay: -0.3s;
+@keyframes pulseScale {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
 }
 
-.spinner-ring:nth-child(3) {
-  animation-delay: -0.15s;
+/* 默认加载动画 */
+.default-spinner {
+  width: 100%;
+  height: 100%;
+  border: 2px solid transparent;
+  border-top: 2px solid var(--accent-color);
+  border-right: 2px solid var(--accent-color);
+  border-radius: 50%;
+  animation: defaultRotate 1s linear infinite;
 }
 
-.loading-text {
+@keyframes defaultRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 加载文本 */
+.loading-message {
   color: var(--text-secondary);
   font-size: 0.9rem;
   text-align: center;
+  max-width: 200px;
 }
 
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+/* 进度条 */
+.loading-progress {
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-/* 暗色主题支持已通过 CSS 变量统一处理 */
-.theme-dark .loading-overlay {
-  background-color: rgba(26, 26, 26, 0.9);
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background-color: var(--border-color);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: var(--accent-color);
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
+.progress-text {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .loading-container {
+    padding: 1rem;
+  }
+  
+  .loading-message {
+    font-size: 0.8rem;
+    max-width: 150px;
+  }
+  
+  .loading-progress {
+    width: 150px;
+  }
 }
 </style>

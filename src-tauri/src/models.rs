@@ -211,9 +211,9 @@ pub struct LibraryStats {
 pub struct BookChapter {
     pub index: usize,
     pub title: String,
+    pub word_count: usize,
     pub start_position: usize,
     pub end_position: usize,
-    pub word_count: usize,
 }
 
 /// 章节内容
@@ -222,7 +222,6 @@ pub struct ChapterContent {
     pub chapter_index: usize,
     pub title: String,
     pub content: String,
-    pub word_count: usize,
     pub estimated_reading_time: u32, // 预估阅读时间（分钟）
 }
 

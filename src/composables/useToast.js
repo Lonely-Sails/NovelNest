@@ -1,58 +1,95 @@
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 
-// 全局 toast 状态
-const toasts = reactive([])
-let toastId = 0
+// 全局Toast状态
+const toastState = ref({
+  show: false,
+  message: '',
+  type: 'info', // 'info', 'success', 'warning', 'error'
+  duration: 3000
+})
 
+let toastTimer = null
+
+/**
+ * Toast消息提示组合式函数
+ * 提供统一的消息提示功能
+ */
 export function useToast() {
+  /**
+   * 显示Toast消息
+   * @param {string} message - 消息内容
+   * @param {string} type - 消息类型 ('info', 'success', 'warning', 'error')
+   * @param {number} duration - 显示时长（毫秒）
+   */
   const showToast = (message, type = 'info', duration = 3000) => {
-    const id = ++toastId
-    const toast = {
-      id,
+    // 清除之前的定时器
+    if (toastTimer) {
+      clearTimeout(toastTimer)
+    }
+
+    toastState.value = {
+      show: true,
       message,
       type,
-      visible: true
+      duration
     }
-    
-    toasts.push(toast)
-    
+
     // 自动隐藏
-    if (duration > 0) {
-      setTimeout(() => {
-        hideToast(id)
-      }, duration)
-    }
-    
-    return id
+    toastTimer = setTimeout(() => {
+      hideToast()
+    }, duration)
   }
-  
-  const hideToast = (id) => {
-    const index = toasts.findIndex(toast => toast.id === id)
-    if (index > -1) {
-      toasts[index].visible = false
-      // 延迟移除以支持动画
-      setTimeout(() => {
-        const currentIndex = toasts.findIndex(toast => toast.id === id)
-        if (currentIndex > -1) {
-          toasts.splice(currentIndex, 1)
-        }
-      }, 300)
+
+  /**
+   * 隐藏Toast消息
+   */
+  const hideToast = () => {
+    toastState.value.show = false
+    if (toastTimer) {
+      clearTimeout(toastTimer)
+      toastTimer = null
     }
   }
-  
-  const clearAllToasts = () => {
-    toasts.forEach(toast => {
-      toast.visible = false
-    })
-    setTimeout(() => {
-      toasts.splice(0)
-    }, 300)
+
+  /**
+   * 显示成功消息
+   * @param {string} message - 消息内容
+   */
+  const showSuccess = (message) => {
+    showToast(message, 'success')
   }
-  
+
+  /**
+   * 显示错误消息
+   * @param {string} message - 消息内容
+   */
+  const showError = (message) => {
+    showToast(message, 'error')
+  }
+
+  /**
+   * 显示警告消息
+   * @param {string} message - 消息内容
+   */
+  const showWarning = (message) => {
+    showToast(message, 'warning')
+  }
+
+  /**
+   * 显示信息消息
+   * @param {string} message - 消息内容
+   */
+  const showInfo = (message) => {
+    showToast(message, 'info')
+  }
+
   return {
-    toasts,
+    toastState,
     showToast,
     hideToast,
-    clearAllToasts
+    showSuccess,
+    showError,
+    showWarning,
+    showInfo
   }
 }
