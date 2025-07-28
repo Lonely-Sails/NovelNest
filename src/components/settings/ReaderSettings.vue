@@ -142,17 +142,12 @@
             <span class="label-text">动画速度</span>
             <span class="label-desc">翻页动画的持续时间</span>
           </label>
-          <div class="animation-speed-control">
-            <select 
-              v-model="localSettings.animationSpeed" 
-              class="speed-select"
-              @change="updateSettings"
-            >
-              <option value="fast">快速 (200ms)</option>
-              <option value="normal">正常 (300ms)</option>
-              <option value="slow">缓慢 (500ms)</option>
-            </select>
-          </div>
+          <BaseSelect
+            v-model="localSettings.animationSpeed"
+            :options="animationSpeedOptions"
+            size="small"
+            @change="updateSettings"
+          />
         </div>
       </div>
       
@@ -209,16 +204,12 @@
             <span class="label-text">工具栏位置</span>
             <span class="label-desc">选择阅读器工具栏的显示位置</span>
           </label>
-          <select 
-            v-model="localSettings.toolbarPosition" 
-            class="toolbar-position-select"
+          <BaseSelect
+            v-model="localSettings.toolbarPosition"
+            :options="toolbarPositionOptions"
+            size="small"
             @change="updateSettings"
-          >
-            <option value="top">顶部</option>
-            <option value="bottom">底部</option>
-            <option value="auto-hide">自动隐藏</option>
-            <option value="hidden">隐藏</option>
-          </select>
+          />
         </div>
       </div>
       
@@ -316,6 +307,21 @@ export default {
     const settingsStore = useSettingsStore()
     const { showToast } = useToast()
     const saving = ref(false)
+    
+    // 动画速度选项
+    const animationSpeedOptions = [
+      { label: '快速 (200ms)', value: 'fast' },
+      { label: '正常 (300ms)', value: 'normal' },
+      { label: '缓慢 (500ms)', value: 'slow' }
+    ]
+    
+    // 工具栏位置选项
+    const toolbarPositionOptions = [
+      { label: '顶部', value: 'top' },
+      { label: '底部', value: 'bottom' },
+      { label: '自动隐藏', value: 'auto-hide' },
+      { label: '隐藏', value: 'hidden' }
+    ]
     
     // 本地设置状态
     const localSettings = reactive({
@@ -427,6 +433,8 @@ export default {
     return {
       localSettings,
       saving,
+      animationSpeedOptions,
+      toolbarPositionOptions,
       previewStyles,
       updateSettings,
       increaseFontSize,
@@ -485,9 +493,9 @@ export default {
 .setting-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 1rem 0;
   border-bottom: 1px solid var(--border-color);
+  gap: 1rem;
 }
 
 .setting-item:last-child {
@@ -496,7 +504,7 @@ export default {
 
 .setting-label {
   flex: 1;
-  margin-right: 1rem;
+  min-width: 0;
 }
 
 .label-text {
@@ -576,24 +584,7 @@ export default {
   text-align: center;
 }
 
-/* 选择框样式 */
-.speed-select,
-.toolbar-position-select {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 0.9rem;
-  min-width: 120px;
-}
 
-.speed-select:focus,
-.toolbar-position-select:focus {
-  outline: none;
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-}
 
 /* 开关样式 */
 .setting-switch {

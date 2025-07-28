@@ -42,35 +42,36 @@
         <!-- 格式过滤 -->
         <div class="filter-group">
           <label class="filter-label">格式:</label>
-          <select v-model="selectedFormat" @change="applyFilters" class="filter-select">
-            <option value="">全部</option>
-            <option value="txt">TXT</option>
-            <option value="epub">EPUB</option>
-            <option value="pdf">PDF</option>
-          </select>
+          <BaseSelect
+            v-model="selectedFormat"
+            :options="formatOptions"
+            placeholder="全部"
+            size="small"
+            @change="applyFilters"
+          />
         </div>
 
         <!-- 阅读状态过滤 -->
         <div class="filter-group">
           <label class="filter-label">状态:</label>
-          <select v-model="selectedStatus" @change="applyFilters" class="filter-select">
-            <option value="">全部</option>
-            <option value="unread">未读</option>
-            <option value="reading">在读</option>
-            <option value="completed">已读</option>
-          </select>
+          <BaseSelect
+            v-model="selectedStatus"
+            :options="statusOptions"
+            placeholder="全部"
+            size="small"
+            @change="applyFilters"
+          />
         </div>
 
         <!-- 排序 -->
         <div class="filter-group">
           <label class="filter-label">排序:</label>
-          <select v-model="sortBy" @change="applySorting" class="filter-select">
-            <option value="title">标题</option>
-            <option value="author">作者</option>
-            <option value="created_at">添加时间</option>
-            <option value="last_read">最近阅读</option>
-            <option value="progress">阅读进度</option>
-          </select>
+          <BaseSelect
+            v-model="sortBy"
+            :options="sortOptions"
+            size="small"
+            @change="applySorting"
+          />
         </div>
 
         <!-- 视图切换 -->
@@ -117,8 +118,8 @@
       <!-- 图书网格/列表 -->
       <div v-else :class="['books-grid', `books-${viewMode}`]">
         <BookCard v-for="book in displayBooks" :key="book.id" :book="book" :compact="viewMode === 'list'"
-          :actions="['read', 'edit', 'delete']" @click="openBook" @read="openBook" @edit="editBook"
-          @delete="confirmDeleteBook" class="book-card-item" />
+          :actions="['read', 'edit']" @click="openBook" @read="openBook" @edit="editBook"
+          class="book-card-item" />
       </div>
     </div>
 
@@ -294,7 +295,7 @@ import { invoke } from '@tauri-apps/api/core'
 import BookCard from '@/components/BookCard.vue'
 import SearchBar from '@/components/SearchBar.vue'
 import UnifiedBookImporter from '@/components/UnifiedBookImporter.vue'
-// 全局注册的组件无需导入：Modal, Toast, Loading, BaseButton等
+// 全局注册的组件无需导入：Modal, Toast, Loading, BaseButton、BaseSelect等
 
 export default {
   name: 'LibraryView',
@@ -307,6 +308,29 @@ export default {
     const router = useRouter()
     const bookStore = useBookStore()
     const { toastState, showSuccess, showError, showWarning, showInfo, hideToast } = useToast()
+
+    // 选项数据
+    const formatOptions = [
+      { label: '全部', value: '' },
+      { label: 'TXT', value: 'txt' },
+      { label: 'EPUB', value: 'epub' },
+      { label: 'PDF', value: 'pdf' }
+    ]
+
+    const statusOptions = [
+      { label: '全部', value: '' },
+      { label: '未读', value: 'unread' },
+      { label: '在读', value: 'reading' },
+      { label: '已读', value: 'completed' }
+    ]
+
+    const sortOptions = [
+      { label: '标题', value: 'title' },
+      { label: '作者', value: 'author' },
+      { label: '添加时间', value: 'created_at' },
+      { label: '最近阅读', value: 'last_read' },
+      { label: '阅读进度', value: 'progress' }
+    ]
 
     // 响应式数据
     const searchQuery = ref('')
@@ -471,7 +495,7 @@ export default {
     }
 
     const openBook = (book) => {
-      router.push(`/reader/${book.id}`)
+      invoke('open_window', { router: `/reader/${book.id}`, title: '阅读器' });
     }
 
     const editBook = async (book) => {
@@ -693,6 +717,11 @@ export default {
     })
 
     return {
+      // 选项数据
+      formatOptions,
+      statusOptions,
+      sortOptions,
+      
       // 数据
       searchQuery,
       searchLoading,
@@ -860,29 +889,7 @@ export default {
   white-space: nowrap;
 }
 
-.filter-select {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  font-size: 0.9rem;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
-  min-width: 100px;
-}
-
-.filter-select:focus {
-  outline: none;
-  border-color: var(--accent-color);
-  background: var(--bg-primary);
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-}
-
-.filter-select:hover:not(:focus) {
-  border-color: var(--text-secondary);
-}
+/* filter-select 样式已由 BaseSelect 组件提供 */
 
 .view-toggle {
   display: flex;

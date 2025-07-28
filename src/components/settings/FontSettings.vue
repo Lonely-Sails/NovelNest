@@ -92,17 +92,12 @@
             <span class="label-text">字体粗细</span>
             <span class="label-desc">调整文字的粗细程度</span>
           </label>
-          <select 
-            v-model="localSettings.fontWeight" 
-            class="setting-select"
+          <BaseSelect
+            v-model="localSettings.fontWeight"
+            :options="fontWeightOptions"
+            size="small"
             @change="updateSettings"
-          >
-            <option value="300">细体 (Light)</option>
-            <option value="400">正常 (Normal)</option>
-            <option value="500">中等 (Medium)</option>
-            <option value="600">半粗 (Semi Bold)</option>
-            <option value="700">粗体 (Bold)</option>
-          </select>
+          />
         </div>
         
         <div class="setting-item">
@@ -110,15 +105,12 @@
             <span class="label-text">字体样式</span>
             <span class="label-desc">选择字体的倾斜样式</span>
           </label>
-          <select 
-            v-model="localSettings.fontStyle" 
-            class="setting-select"
+          <BaseSelect
+            v-model="localSettings.fontStyle"
+            :options="fontStyleOptions"
+            size="small"
             @change="updateSettings"
-          >
-            <option value="normal">正常</option>
-            <option value="italic">斜体</option>
-            <option value="oblique">倾斜</option>
-          </select>
+          />
         </div>
         
         <div class="setting-item">
@@ -199,16 +191,12 @@
             <span class="label-text">文本对齐</span>
             <span class="label-desc">设置段落文本的对齐方式</span>
           </label>
-          <select 
-            v-model="localSettings.textAlign" 
-            class="setting-select"
+          <BaseSelect
+            v-model="localSettings.textAlign"
+            :options="textAlignOptions"
+            size="small"
             @change="updateSettings"
-          >
-            <option value="left">左对齐</option>
-            <option value="center">居中对齐</option>
-            <option value="right">右对齐</option>
-            <option value="justify">两端对齐</option>
-          </select>
+          />
         </div>
         
         <div class="setting-item">
@@ -290,6 +278,30 @@ export default {
       textAlign: 'justify',
       textIndent: 2
     })
+    
+    // 字体粗细选项
+    const fontWeightOptions = [
+      { label: '细体 (Light)', value: '300' },
+      { label: '正常 (Normal)', value: '400' },
+      { label: '中等 (Medium)', value: '500' },
+      { label: '半粗 (Semi Bold)', value: '600' },
+      { label: '粗体 (Bold)', value: '700' }
+    ]
+    
+    // 字体样式选项
+    const fontStyleOptions = [
+      { label: '正常', value: 'normal' },
+      { label: '斜体', value: 'italic' },
+      { label: '倾斜', value: 'oblique' }
+    ]
+    
+    // 文本对齐选项
+    const textAlignOptions = [
+      { label: '左对齐', value: 'left' },
+      { label: '居中对齐', value: 'center' },
+      { label: '右对齐', value: 'right' },
+      { label: '两端对齐', value: 'justify' }
+    ]
     
     // 字体系列选项
     const fontFamilies = [
@@ -460,6 +472,9 @@ export default {
       localSettings,
       saving,
       fontFamilies,
+      fontWeightOptions,
+      fontStyleOptions,
+      textAlignOptions,
       previewStyles,
       updateSettings,
       selectFont,
@@ -579,9 +594,9 @@ export default {
 .setting-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 1rem 0;
   border-bottom: 1px solid var(--border-color);
+  gap: 1rem;
 }
 
 .setting-item:last-child {
@@ -590,7 +605,7 @@ export default {
 
 .setting-label {
   flex: 1;
-  margin-right: 1rem;
+  min-width: 0;
 }
 
 .label-text {
@@ -627,7 +642,6 @@ export default {
 }
 
 /* 输入控件样式 */
-.setting-select,
 .setting-input {
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--border-color);
@@ -638,7 +652,6 @@ export default {
   min-width: 150px;
 }
 
-.setting-select:focus,
 .setting-input:focus {
   outline: none;
   border-color: var(--accent-color);

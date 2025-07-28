@@ -94,10 +94,7 @@
           <DataManagement />
         </div>
         
-        <!-- 关于 -->
-        <div v-if="activeTab === 'about'" class="settings-panel">
-          <AboutPanel />
-        </div>
+
       </BaseCard>
     </div>
   </div>
@@ -112,7 +109,6 @@ import FontSettings from '../components/settings/FontSettings.vue'
 import SourceSettings from '../components/settings/SourceSettings.vue'
 import DownloadSettings from '../components/settings/DownloadSettings.vue'
 import DataManagement from '../components/settings/DataManagement.vue'
-import AboutPanel from '../components/settings/AboutPanel.vue'
 
 export default {
   name: 'SettingsView',
@@ -123,16 +119,14 @@ export default {
     FontSettings,
     SourceSettings,
     DownloadSettings,
-    DataManagement,
-    AboutPanel
+    DataManagement
   },
   setup() {
     const activeTab = ref('app')
     
     const generalNavItems = [
       { key: 'app', label: '应用设置', icon: '⚙️' },
-      { key: 'theme', label: '主题外观', icon: '🎨' },
-      { key: 'about', label: '关于应用', icon: 'ℹ️' }
+      { key: 'theme', label: '主题外观', icon: '🎨' }
     ]
     
     const readerNavItems = [

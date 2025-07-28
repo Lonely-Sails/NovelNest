@@ -94,7 +94,6 @@ async fn filter_books_by_format(
 ) -> Result<Vec<Book>, String> {
     let book_format = match format.to_lowercase().as_str() {
         "txt" => BookFormat::Txt,
-        "epub" => BookFormat::Epub,
         "pdf" => BookFormat::Pdf,
         _ => return Err("不支持的文件格式".to_string()),
     };
@@ -199,16 +198,22 @@ async fn add_bookmark(
     note: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<i64, String> {
-    println!("开始添加书签: book_id={}, position={}, chapter_index={:?}, note={:?}", 
-        book_id, position, chapter_index, note);
-    
+    println!(
+        "开始添加书签: book_id={}, position={}, chapter_index={:?}, note={:?}",
+        book_id, position, chapter_index, note
+    );
+
     // 输入验证
     if book_id.is_empty() {
         eprintln!("book_id 为空");
         return Err("book_id 不能为空".to_string());
     }
 
-    match state.book_manager.add_bookmark(&book_id, position, chapter_index, note).await {
+    match state
+        .book_manager
+        .add_bookmark(&book_id, position, chapter_index, note)
+        .await
+    {
         Ok(bookmark_id) => {
             println!("成功添加书签: bookmark_id={}", bookmark_id);
             Ok(bookmark_id)
@@ -227,7 +232,7 @@ async fn get_bookmarks(
     state: State<'_, AppState>,
 ) -> Result<Vec<models::Bookmark>, String> {
     println!("开始获取书签: book_id={}", book_id);
-    
+
     // 输入验证
     if book_id.is_empty() {
         eprintln!("book_id 为空");
@@ -236,20 +241,18 @@ async fn get_bookmarks(
 
     // 添加超时机制，避免长时间阻塞
     let timeout_duration = std::time::Duration::from_secs(10);
-    
+
     match tokio::time::timeout(timeout_duration, state.book_manager.get_bookmarks(&book_id)).await {
-        Ok(result) => {
-            match result {
-                Ok(bookmarks) => {
-                    println!("成功获取 {} 个书签", bookmarks.len());
-                    Ok(bookmarks)
-                }
-                Err(e) => {
-                    eprintln!("获取书签失败: {}", e);
-                    Err(format!("获取书签失败: {}", e))
-                }
+        Ok(result) => match result {
+            Ok(bookmarks) => {
+                println!("成功获取 {} 个书签", bookmarks.len());
+                Ok(bookmarks)
             }
-        }
+            Err(e) => {
+                eprintln!("获取书签失败: {}", e);
+                Err(format!("获取书签失败: {}", e))
+            }
+        },
         Err(_) => {
             eprintln!("获取书签超时: book_id={}", book_id);
             Err("获取书签超时，请重试".to_string())
@@ -618,25 +621,33 @@ async fn save_settings(
 
 /// 打开设置窗口
 #[tauri::command]
-async fn open_window(router: String, app: tauri::AppHandle) -> Result<(), String> {
-    // 检查设置窗口是否已经存在
-    if let Some(window) = app.get_webview_window(&router) {
-        // 如果窗口存在，显示并聚焦
+async fn open_window(router: String, title: String, app: tauri::AppHandle) -> Result<(), String> {
+    // 从路由中提取窗口标签，去掉开头的斜杠
+    let segments: Vec<&str> = router.split('/').collect();
+    let window_label = segments.get(0).copied().unwrap_or(&router);
+
+    // 构建新的URL
+    let url_path = format!("/?router={}", router);
+    let webview_url = tauri::WebviewUrl::App(url_path.clone().into());
+
+    // 检查窗口是否已经存在
+    if let Some(window) = app.get_webview_window(window_label) {
+        // 如果窗口存在，更新URL并显示聚焦
+        // 注意：navigate方法需要的是Url类型，我们需要使用不同的方法
+        // 由于Tauri的限制，我们可能需要重新加载页面或使用其他方式
+        window
+            .eval(&format!("window.location.href = '{}'", url_path))
+            .map_err(|e| format!("更新窗口URL失败: {}", e))?;
         window.show().map_err(|e| e.to_string())?;
         window.set_focus().map_err(|e| e.to_string())?;
     } else {
-        // 如果窗口不存在，创建新窗口
-        let _ = tauri::WebviewWindowBuilder::new(
-            &app,
-            &router,
-            tauri::WebviewUrl::App(format!("/?router={}", router).into()),
-        )
-        .title("设置 - NovelNest")
-        .inner_size(900.0, 700.0)
-        .min_inner_size(800.0, 600.0)
-        .resizable(true)
-        .build()
-        .map_err(|e| e.to_string())?;
+        let _ = tauri::WebviewWindowBuilder::new(&app, window_label, webview_url)
+            .title(title + " - NovelNest")
+            .inner_size(900.0, 700.0)
+            .min_inner_size(800.0, 600.0)
+            .resizable(true)
+            .build()
+            .map_err(|e| e.to_string())?;
     }
 
     Ok(())
@@ -977,13 +988,16 @@ pub fn run() {
     std::panic::set_hook(Box::new(|panic_info| {
         eprintln!("应用崩溃！");
         eprintln!("崩溃位置: {:?}", panic_info.location());
-        eprintln!("崩溃信息: {:?}", panic_info.payload().downcast_ref::<&str>());
-        
+        eprintln!(
+            "崩溃信息: {:?}",
+            panic_info.payload().downcast_ref::<&str>()
+        );
+
         // 尝试获取更多信息
         if let Some(s) = panic_info.payload().downcast_ref::<String>() {
             eprintln!("崩溃详情: {}", s);
         }
-        
+
         // 打印调用栈
         eprintln!("调用栈:");
         let backtrace = std::backtrace::Backtrace::capture();

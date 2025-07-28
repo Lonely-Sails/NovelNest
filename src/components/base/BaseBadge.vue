@@ -1,16 +1,5 @@
 <template>
-  <span 
-    :class="[
-      'base-badge',
-      `badge-${variant}`,
-      `badge-${size}`,
-      {
-        'badge-dot': dot,
-        'badge-outline': outline,
-        'badge-rounded': rounded
-      }
-    ]"
-  >
+  <span :class="badgeClasses">
     <!-- 点状徽章 -->
     <span v-if="dot" class="badge-dot-indicator"></span>
     
@@ -27,6 +16,8 @@
 </template>
 
 <script>
+import { computed } from 'vue'
+
 export default {
   name: 'BaseBadge',
   props: {
@@ -66,6 +57,23 @@ export default {
     icon: {
       type: String,
       default: ''
+    }
+  },
+  setup(props) {
+    // 计算徽章样式类
+    const badgeClasses = computed(() => [
+      'base-badge',
+      `badge-${props.variant}`,
+      `badge-${props.size}`,
+      {
+        'badge-dot': props.dot,
+        'badge-outline': props.outline,
+        'badge-rounded': props.rounded
+      }
+    ])
+
+    return {
+      badgeClasses
     }
   }
 }

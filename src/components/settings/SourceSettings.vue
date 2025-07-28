@@ -37,16 +37,12 @@
             <span class="label-text">更新检查间隔</span>
             <span class="label-desc">自动检查更新的时间间隔</span>
           </label>
-          <select 
-            v-model="localSettings.updateInterval" 
-            class="setting-select"
+          <BaseSelect
+            v-model="localSettings.updateInterval"
+            :options="updateIntervalOptions"
+            size="small"
             @change="updateSettings"
-          >
-            <option value="daily">每天</option>
-            <option value="weekly">每周</option>
-            <option value="monthly">每月</option>
-            <option value="manual">手动</option>
-          </select>
+          />
         </div>
       </div>
       
@@ -378,6 +374,14 @@ export default {
     const saving = ref(false)
     const cacheSize = ref(0)
     
+    // 更新间隔选项
+    const updateIntervalOptions = [
+      { label: '每天', value: 'daily' },
+      { label: '每周', value: 'weekly' },
+      { label: '每月', value: 'monthly' },
+      { label: '手动', value: 'manual' }
+    ]
+    
     // 本地设置状态
     const localSettings = reactive({
       enabled: true,
@@ -531,6 +535,7 @@ export default {
       localSettings,
       saving,
       cacheSize,
+      updateIntervalOptions,
       updateSettings,
       clearCache,
       saveSettings,
@@ -587,9 +592,9 @@ export default {
 .setting-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 1rem 0;
   border-bottom: 1px solid var(--border-color);
+  gap: 1rem;
 }
 
 .setting-item:last-child {
@@ -598,7 +603,7 @@ export default {
 
 .setting-label {
   flex: 1;
-  margin-right: 1rem;
+  min-width: 0;
 }
 
 .label-text {

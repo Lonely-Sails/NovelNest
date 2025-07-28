@@ -7,7 +7,6 @@ use std::path::PathBuf;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum BookFormat {
     Txt,
-    Epub,
     Pdf,
 }
 
@@ -15,7 +14,6 @@ impl BookFormat {
     pub fn from_extension(ext: &str) -> Option<Self> {
         match ext.to_lowercase().as_str() {
             "txt" => Some(BookFormat::Txt),
-            "epub" => Some(BookFormat::Epub),
             "pdf" => Some(BookFormat::Pdf),
             _ => None,
         }
@@ -24,7 +22,6 @@ impl BookFormat {
     pub fn to_string(&self) -> &'static str {
         match self {
             BookFormat::Txt => "txt",
-            BookFormat::Epub => "epub",
             BookFormat::Pdf => "pdf",
         }
     }
@@ -212,8 +209,8 @@ pub struct BookChapter {
     pub index: usize,
     pub title: String,
     pub word_count: usize,
-    pub start_position: usize,
-    pub end_position: usize,
+    pub start_line: usize,  // 章节开始行号
+    pub end_line: usize,    // 章节结束行号
 }
 
 /// 章节内容
@@ -221,7 +218,7 @@ pub struct BookChapter {
 pub struct ChapterContent {
     pub chapter_index: usize,
     pub title: String,
-    pub content: String,
+    pub content: Vec<String>, // 每行一个元素的列表
     pub estimated_reading_time: u32, // 预估阅读时间（分钟）
 }
 

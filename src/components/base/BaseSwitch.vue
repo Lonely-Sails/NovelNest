@@ -1,15 +1,6 @@
 <template>
   <div class="base-switch-wrapper">
-    <label 
-      :class="[
-        'switch-container',
-        `switch-${size}`,
-        {
-          'switch-disabled': disabled,
-          'switch-checked': modelValue
-        }
-      ]"
-    >
+    <label :class="switchClasses">
       <input
         type="checkbox"
         :checked="modelValue"
@@ -39,6 +30,8 @@
 </template>
 
 <script>
+import { computed } from 'vue'
+
 export default {
   name: 'BaseSwitch',
   props: {
@@ -86,6 +79,16 @@ export default {
   },
   emits: ['update:modelValue', 'change'],
   setup(props, { emit }) {
+    // 计算开关样式类
+    const switchClasses = computed(() => [
+      'switch-container',
+      `switch-${props.size}`,
+      {
+        'switch-disabled': props.disabled,
+        'switch-checked': props.modelValue
+      }
+    ])
+    
     const handleChange = (event) => {
       const checked = event.target.checked
       emit('update:modelValue', checked)
@@ -93,6 +96,7 @@ export default {
     }
 
     return {
+      switchClasses,
       handleChange
     }
   }
@@ -111,6 +115,12 @@ export default {
   display: inline-block;
   cursor: pointer;
   flex-shrink: 0;
+  /* 确保在webkit浏览器中正确显示 */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  /* 移除webkit浏览器的默认点击高亮 */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .switch-disabled {
@@ -123,6 +133,17 @@ export default {
   opacity: 0;
   width: 0;
   height: 0;
+  /* 完全隐藏webkit浏览器中的原生样式 */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  /* 确保不占用任何空间 */
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  /* 防止在某些浏览器中显示 */
+  visibility: hidden;
 }
 
 .switch-slider {
@@ -131,6 +152,12 @@ export default {
   background-color: var(--border-color);
   border-radius: 50px;
   transition: all 0.3s ease;
+  /* 确保在webkit浏览器中正确显示 */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  /* 防止webkit浏览器的默认样式干扰 */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .switch-thumb {
@@ -144,6 +171,12 @@ export default {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  /* 确保在webkit浏览器中正确显示 */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  /* 防止webkit浏览器的默认样式 */
+  border: none;
+  outline: none;
 }
 
 .switch-icon {
@@ -244,6 +277,43 @@ export default {
   font-size: 0.8rem;
   line-height: 1.3;
   margin-top: 0.25rem;
+}
+
+/* webkit浏览器特定样式优化 */
+@supports (-webkit-appearance: none) {
+  .switch-input {
+    /* 在支持webkit的浏览器中进一步确保隐藏 */
+    position: absolute !important;
+    left: -9999px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
+  .switch-container {
+    /* 确保容器不会被原生样式影响 */
+    outline: none;
+    border: none;
+    background: none;
+  }
+  
+  .switch-slider {
+    /* 确保滑块样式不被覆盖 */
+    border: none;
+    outline: none;
+  }
+}
+
+/* 针对Safari浏览器的特殊处理 */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  .switch-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  
+  .switch-input::-webkit-slider-runnable-track {
+    -webkit-appearance: none;
+    appearance: none;
+  }
 }
 
 /* 响应式设计 */

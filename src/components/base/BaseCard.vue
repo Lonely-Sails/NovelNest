@@ -1,15 +1,5 @@
 <template>
-  <div 
-    :class="[
-      'base-card',
-      `card-${variant}`,
-      {
-        'card-hoverable': hoverable,
-        'card-selected': selected,
-        'card-compact': compact,
-        'card-clickable': clickable
-      }
-    ]"
+  <div :class="cardClasses"
     @click="handleClick"
   >
     <!-- 卡片头部 -->
@@ -17,9 +7,6 @@
       <slot name="header">
         <h3 v-if="title" class="card-title">{{ title }}</h3>
       </slot>
-      <div v-if="$slots.actions" class="card-actions">
-        <slot name="actions"></slot>
-      </div>
     </div>
     
     <!-- 卡片内容 -->
@@ -35,6 +22,8 @@
 </template>
 
 <script>
+import { computed } from 'vue'
+
 export default {
   name: 'BaseCard',
   props: {
@@ -72,6 +61,18 @@ export default {
   },
   emits: ['click'],
   setup(props, { emit }) {
+    // 计算卡片样式类
+    const cardClasses = computed(() => [
+      'base-card',
+      `card-${props.variant}`,
+      {
+        'card-hoverable': props.hoverable,
+        'card-selected': props.selected,
+        'card-compact': props.compact,
+        'card-clickable': props.clickable
+      }
+    ])
+    
     const handleClick = (event) => {
       if (props.clickable) {
         emit('click', event)
@@ -79,6 +80,7 @@ export default {
     }
 
     return {
+      cardClasses,
       handleClick
     }
   }

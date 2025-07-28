@@ -193,7 +193,6 @@ impl DatabaseManager {
                 file_path: row.get(3)?,
                 format: match format_str.as_str() {
                     "txt" => crate::models::BookFormat::Txt,
-                    "epub" => crate::models::BookFormat::Epub,
                     "pdf" => crate::models::BookFormat::Pdf,
                     _ => crate::models::BookFormat::Txt,
                 },
@@ -245,7 +244,6 @@ impl DatabaseManager {
                 file_path: row.get(3)?,
                 format: match format_str.as_str() {
                     "txt" => crate::models::BookFormat::Txt,
-                    "epub" => crate::models::BookFormat::Epub,
                     "pdf" => crate::models::BookFormat::Pdf,
                     _ => crate::models::BookFormat::Txt,
                 },
@@ -298,7 +296,6 @@ impl DatabaseManager {
                 file_path: row.get(3)?,
                 format: match format_str.as_str() {
                     "txt" => crate::models::BookFormat::Txt,
-                    "epub" => crate::models::BookFormat::Epub,
                     "pdf" => crate::models::BookFormat::Pdf,
                     _ => crate::models::BookFormat::Txt,
                 },

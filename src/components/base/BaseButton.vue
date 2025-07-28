@@ -1,37 +1,21 @@
 <template>
-  <component
-    :is="tag"
-    :class="[
-      'base-button',
-      `btn-${variant}`,
-      `btn-${size}`,
-      {
-        'btn-loading': loading,
-        'btn-block': block,
-        'btn-rounded': rounded
-      }
-    ]"
-    :disabled="disabled || loading"
-    :type="type"
-    :href="href"
-    :target="target"
-    @click="handleClick"
-  >
+  <component :is="tag" :class="buttonClasses" :disabled="disabled || loading" :type="type" :href="href" :target="target"
+    @click="handleClick">
     <!-- 加载状态图标 -->
     <div v-if="loading" class="btn-spinner">
       <div class="spinner"></div>
     </div>
-    
+
     <!-- 前置图标 -->
     <span v-if="$slots.icon || icon" class="btn-icon btn-icon-left">
       <slot name="icon">{{ icon }}</slot>
     </span>
-    
+
     <!-- 按钮文本 -->
     <span class="btn-text">
       <slot></slot>
     </span>
-    
+
     <!-- 后置图标 -->
     <span v-if="$slots.iconRight || iconRight" class="btn-icon btn-icon-right">
       <slot name="iconRight">{{ iconRight }}</slot>
@@ -40,14 +24,16 @@
 </template>
 
 <script>
+import { computed } from 'vue'
+
 export default {
   name: 'BaseButton',
   props: {
-    // 按钮变体：primary, secondary, success, warning, error, outline, ghost, link
+    // 按钮变体：primary, secondary, success, warning, error, danger, outline, ghost, link
     variant: {
       type: String,
       default: 'primary',
-      validator: (value) => ['primary', 'secondary', 'success', 'warning', 'error', 'outline', 'ghost', 'link'].includes(value)
+      validator: (value) => ['primary', 'secondary', 'success', 'warning', 'error', 'danger', 'outline', 'ghost', 'link'].includes(value)
     },
     // 按钮大小：small, medium, large
     size: {
@@ -103,8 +89,20 @@ export default {
   },
   emits: ['click'],
   setup(props, { emit }) {
-    const tag = props.href ? 'a' : 'button'
-    
+    const tag = computed(() => props.href ? 'a' : 'button')
+
+    // 计算按钮样式类
+    const buttonClasses = computed(() => [
+      'base-button',
+      `btn-${props.variant}`,
+      `btn-${props.size}`,
+      {
+        'btn-loading': props.loading,
+        'btn-block': props.block,
+        'btn-rounded': props.rounded
+      }
+    ])
+
     const handleClick = (event) => {
       if (!props.disabled && !props.loading) {
         emit('click', event)
@@ -113,6 +111,7 @@ export default {
 
     return {
       tag,
+      buttonClasses,
       handleClick
     }
   }
@@ -226,6 +225,18 @@ export default {
   transform: translateY(-1px);
 }
 
+.btn-danger {
+  background: var(--error-color);
+  color: white;
+  border-color: var(--error-color);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--error-hover);
+  border-color: var(--error-hover);
+  transform: translateY(-1px);
+}
+
 .btn-outline {
   background: transparent;
   color: var(--primary-color);
@@ -293,8 +304,13 @@ export default {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* 图标样式 */

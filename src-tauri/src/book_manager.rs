@@ -152,7 +152,6 @@ impl BookManager {
     ) -> BookResult<(String, Option<String>)> {
         match format {
             BookFormat::Txt => self.extract_txt_metadata(file_path).await,
-            BookFormat::Epub => self.extract_epub_metadata(file_path).await,
             BookFormat::Pdf => self.extract_pdf_metadata(file_path).await,
         }
     }
@@ -209,30 +208,6 @@ impl BookManager {
         }
 
         None
-    }
-
-    /// 提取EPUB文件元数据
-    async fn extract_epub_metadata(
-        &self,
-        file_path: &Path,
-    ) -> BookResult<(String, Option<String>)> {
-        let doc = epub::doc::EpubDoc::new(file_path)
-            .map_err(|e| BookError::ParseError(format!("EPUB文件解析失败: {}", e)))?;
-
-        let title = doc
-            .mdata("title")
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| {
-                file_path
-                    .file_stem()
-                    .and_then(|name| name.to_str())
-                    .unwrap_or("未知标题")
-                    .to_string()
-            });
-
-        let author = doc.mdata("creator").map(|s| s.to_string());
-
-        Ok((title, author))
     }
 
     /// 提取PDF文件元数据
@@ -526,10 +501,9 @@ impl BookManager {
 
         let file_path = PathBuf::from(&book.file_path);
 
-        // 根据格式读取内容
+        // 支持TXT和PDF格式
         match book.format {
             BookFormat::Txt => self.read_txt_content(&file_path).await,
-            BookFormat::Epub => self.read_epub_content(&file_path).await,
             BookFormat::Pdf => self.read_pdf_content(&file_path).await,
         }
     }
@@ -554,39 +528,6 @@ impl BookManager {
         tokio::fs::read_to_string(file_path)
             .await
             .map_err(|e| BookError::CorruptedFile(format!("读取TXT文件失败: {}", e)))
-    }
-
-    /// 读取EPUB文件内容
-    async fn read_epub_content(&self, file_path: &Path) -> BookResult<String> {
-        let mut doc = epub::doc::EpubDoc::new(file_path)
-            .map_err(|e| BookError::ParseError(format!("EPUB文件解析失败: {}", e)))?;
-
-        let mut content = String::new();
-
-        // 获取所有章节内容
-        for i in 0..doc.get_num_pages() {
-            if !doc.set_current_page(i) {
-                return Err(BookError::ChapterParseError(format!(
-                    "设置EPUB页面失败: {}",
-                    i
-                )));
-            }
-
-            match doc.get_current_str() {
-                Some((chapter_content, _)) => {
-                    content.push_str(&chapter_content);
-                    content.push('\n');
-                }
-                None => {
-                    return Err(BookError::ChapterParseError(format!(
-                        "获取EPUB章节内容失败: {}",
-                        i
-                    )));
-                }
-            }
-        }
-
-        Ok(content)
     }
 
     /// 读取PDF文件内容
@@ -622,10 +563,9 @@ impl BookManager {
             )));
         }
 
-        // 根据格式解析章节
+        // 支持TXT和PDF格式
         match book.format {
             BookFormat::Txt => self.parse_txt_chapters(&file_path).await,
-            BookFormat::Epub => self.parse_epub_chapters(&file_path).await,
             BookFormat::Pdf => self.parse_pdf_chapters(&file_path).await,
         }
     }
@@ -638,14 +578,18 @@ impl BookManager {
         let content = self.read_txt_content(file_path).await?;
         let mut chapters = Vec::new();
 
+        // 按行分割内容
+        let lines: Vec<&str> = content.lines().collect();
+        let total_lines = lines.len();
+
         // 如果文件太大（超过10MB），直接返回单章节避免性能问题
         if content.len() > 10 * 1024 * 1024 {
             let char_count = content.chars().count();
             chapters.push(crate::models::BookChapter {
                 index: 0,
                 title: "全文".to_string(),
-                start_position: 0,
-                end_position: char_count,
+                start_line: 0,
+                end_line: total_lines,
                 word_count: char_count,
             });
             return Ok(chapters);
@@ -671,7 +615,6 @@ impl BookManager {
                 .map_err(|e| BookError::ParseError(format!("正则表达式编译失败: {}", e)))?,
         ];
 
-        let lines: Vec<&str> = content.lines().collect();
         let mut chapter_starts = Vec::new();
 
         // 限制处理的行数，避免处理超大文件时卡死
@@ -697,22 +640,19 @@ impl BookManager {
 
         // 如果没有找到章节，创建一个默认章节
         if chapter_starts.is_empty() {
+            let total_lines = lines.len();
             let char_count = content.chars().count();
             chapters.push(crate::models::BookChapter {
                 index: 0,
                 title: "全文".to_string(),
-                start_position: 0,
-                end_position: char_count,
+                start_line: 0,
+                end_line: total_lines,
                 word_count: char_count,
             });
             return Ok(chapters);
         }
 
-        // 将内容转换为字符数组，用于准确计算字符位置
-        let chars: Vec<char> = content.chars().collect();
-        let total_chars = chars.len();
-
-        // 创建章节对象
+        // 创建章节对象，使用行索引
         for (index, (line_index, title)) in chapter_starts.iter().enumerate() {
             let start_line = *line_index;
             let end_line = if index + 1 < chapter_starts.len() {
@@ -721,86 +661,18 @@ impl BookManager {
                 lines.len()
             };
 
-            // 计算字符位置而不是字节位置
-            let start_char_pos = if start_line == 0 {
-                0
-            } else {
-                // 计算到start_line之前所有行的字符数（包括换行符）
-                lines[..start_line]
-                    .iter()
-                    .map(|line| line.chars().count() + 1)
-                    .sum::<usize>()
-            };
-
-            let end_char_pos = if end_line >= lines.len() {
-                total_chars
-            } else {
-                // 计算到end_line之前所有行的字符数（包括换行符）
-                lines[..end_line]
-                    .iter()
-                    .map(|line| line.chars().count() + 1)
-                    .sum::<usize>()
-            };
-
-            // 确保位置不超出范围
-            let start_position = std::cmp::min(start_char_pos, total_chars);
-            let end_position = std::cmp::min(end_char_pos, total_chars);
-
             // 计算章节内容的字符数
-            let chapter_char_count = if end_position > start_position {
-                end_position - start_position
-            } else {
-                0
-            };
+            let chapter_lines = &lines[start_line..end_line];
+            let chapter_char_count: usize =
+                chapter_lines.iter().map(|line| line.chars().count()).sum();
 
             chapters.push(crate::models::BookChapter {
                 index,
                 title: title.clone(),
-                start_position,
-                end_position,
+                start_line,
+                end_line,
                 word_count: chapter_char_count,
             });
-        }
-
-        Ok(chapters)
-    }
-
-    /// 解析EPUB文件章节
-    async fn parse_epub_chapters(
-        &self,
-        file_path: &Path,
-    ) -> BookResult<Vec<crate::models::BookChapter>> {
-        let mut doc = epub::doc::EpubDoc::new(file_path)
-            .map_err(|e| BookError::ParseError(format!("EPUB文件解析失败: {}", e)))?;
-
-        let mut chapters = Vec::new();
-        let mut current_position = 0;
-
-        // 获取所有章节
-        for i in 0..doc.get_num_pages() {
-            if !doc.set_current_page(i) {
-                continue;
-            }
-
-            if let Some((chapter_content, _)) = doc.get_current_str() {
-                let title = doc
-                    .get_current_id()
-                    .map(|_id| format!("第{}章", i + 1))
-                    .unwrap_or_else(|| format!("第{}章", i + 1));
-
-                let word_count = chapter_content.chars().count();
-                let end_position = current_position + chapter_content.len();
-
-                chapters.push(crate::models::BookChapter {
-                    index: i,
-                    title,
-                    start_position: current_position,
-                    end_position,
-                    word_count,
-                });
-
-                current_position = end_position + 1; // +1 for newline
-            }
         }
 
         Ok(chapters)
@@ -812,14 +684,16 @@ impl BookManager {
         file_path: &Path,
     ) -> BookResult<Vec<crate::models::BookChapter>> {
         let content = self.read_pdf_content(file_path).await?;
+        let lines: Vec<&str> = content.lines().collect();
+        let total_lines = lines.len();
 
         // PDF章节解析比较复杂，这里简化处理
         // 可以根据页面分割或者文本模式识别
         let chapters = vec![crate::models::BookChapter {
             index: 0,
             title: "全文".to_string(),
-            start_position: 0,
-            end_position: content.len(),
+            start_line: 0,
+            end_line: total_lines,
             word_count: content.chars().count(),
         }];
 
@@ -855,31 +729,6 @@ impl BookManager {
         }
     }
 
-    /// 检查是否为章节标题行
-    fn is_chapter_title_line(&self, line: &str) -> bool {
-        let line = line.trim();
-        
-        // 检查常见的章节标题模式
-        let chapter_patterns = vec![
-            regex::Regex::new(r"^第[一二三四五六七八九十百千万\d]+章").unwrap(),
-            regex::Regex::new(r"^第[一二三四五六七八九十百千万\d]+节").unwrap(),
-            regex::Regex::new(r"^Chapter\s+\d+").unwrap(),
-            regex::Regex::new(r"^CHAPTER\s+\d+").unwrap(),
-            regex::Regex::new(r"^第\d+章").unwrap(),
-            regex::Regex::new(r"^第\d+节").unwrap(),
-            regex::Regex::new(r"^\d+\.").unwrap(),
-            regex::Regex::new(r"^\d+、").unwrap(),
-        ];
-
-        for pattern in &chapter_patterns {
-            if pattern.is_match(line) && line.len() < 100 {
-                return true;
-            }
-        }
-
-        false
-    }
-
     /// 获取指定章节内容
     pub async fn get_chapter_content(
         &self,
@@ -894,16 +743,16 @@ impl BookManager {
 
         let full_content = self.get_book_content(book_id).await?;
 
-        // 使用字符索引而不是字节索引来避免UTF-8边界问题
-        let chars: Vec<char> = full_content.chars().collect();
-        let total_chars = chars.len();
+        // 按行分割内容
+        let lines: Vec<&str> = full_content.lines().collect();
+        let total_lines = lines.len();
 
-        // 确保索引在有效范围内
-        let start_pos = std::cmp::min(chapter.start_position, total_chars);
-        let end_pos = std::cmp::min(chapter.end_position, total_chars);
+        // 确保行索引在有效范围内
+        let start_line = std::cmp::min(chapter.start_line, total_lines);
+        let end_line = std::cmp::min(chapter.end_line, total_lines);
 
-        let mut chapter_content = if start_pos < end_pos && start_pos < total_chars {
-            chars[start_pos..end_pos].iter().collect()
+        let mut chapter_content = if start_line < end_line && start_line < total_lines {
+            lines[start_line..end_line].join("\n")
         } else {
             String::new()
         };
@@ -911,14 +760,24 @@ impl BookManager {
         // 去掉章节标题行（如果存在）
         chapter_content = self.remove_chapter_title(&chapter_content, &chapter.title);
 
+        // 将内容按行分割成Vec<String>，过滤掉空行
+        let content_lines: Vec<String> = chapter_content
+            .lines()
+            .map(|line| line.to_string())
+            .filter(|line| !line.trim().is_empty()) // 过滤空行
+            .collect();
+
         // 计算预估阅读时间（假设每分钟阅读300字）
-        let content_char_count = chapter_content.chars().count();
+        let content_char_count = content_lines
+            .iter()
+            .map(|line| line.chars().count())
+            .sum::<usize>();
         let estimated_reading_time = (content_char_count as f64 / 300.0).ceil() as u32;
 
         Ok(crate::models::ChapterContent {
             chapter_index,
             title: chapter.title.clone(),
-            content: chapter_content,
+            content: content_lines,
             estimated_reading_time,
         })
     }

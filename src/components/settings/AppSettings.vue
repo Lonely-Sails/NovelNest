@@ -14,16 +14,12 @@
             <span class="label-text">界面语言</span>
             <span class="label-desc">选择应用界面显示语言</span>
           </label>
-          <select 
-            v-model="localSettings.language" 
-            class="setting-select"
+          <BaseSelect
+            v-model="localSettings.language"
+            :options="languageOptions"
+            size="small"
             @change="updateSettings"
-          >
-            <option value="zh-CN">简体中文</option>
-            <option value="zh-TW">繁體中文</option>
-            <option value="en-US">English</option>
-            <option value="ja-JP">日本語</option>
-          </select>
+          />
         </div>
       </div>
       
@@ -196,6 +192,14 @@ export default {
     const { showToast } = useToast()
     const saving = ref(false)
     
+    // 语言选项
+    const languageOptions = [
+      { label: '简体中文', value: 'zh-CN' },
+      { label: '繁體中文', value: 'zh-TW' },
+      { label: 'English', value: 'en-US' },
+      { label: '日本語', value: 'ja-JP' }
+    ]
+    
     // 本地设置状态
     const localSettings = reactive({
       language: 'zh-CN',
@@ -274,6 +278,7 @@ export default {
     return {
       localSettings,
       saving,
+      languageOptions,
       updateSettings,
       selectDataPath,
       saveSettings,
@@ -330,9 +335,9 @@ export default {
 .setting-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 1rem 0;
   border-bottom: 1px solid var(--border-color);
+  gap: 1rem;
 }
 
 .setting-item:last-child {
@@ -341,7 +346,7 @@ export default {
 
 .setting-label {
   flex: 1;
-  margin-right: 1rem;
+  min-width: 0; /* 允许收缩 */
 }
 
 .label-text {

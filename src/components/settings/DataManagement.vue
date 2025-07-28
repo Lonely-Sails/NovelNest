@@ -74,15 +74,12 @@
               <span class="label-text">备份频率</span>
               <span class="label-desc">自动备份的时间间隔</span>
             </label>
-            <select 
-              v-model="localSettings.backupFrequency" 
-              class="setting-select"
+            <BaseSelect
+              v-model="localSettings.backupFrequency"
+              :options="backupFrequencyOptions"
+              size="small"
               @change="updateSettings"
-            >
-              <option value="daily">每天</option>
-              <option value="weekly">每周</option>
-              <option value="monthly">每月</option>
-            </select>
+            />
           </div>
           
           <div class="setting-item">
@@ -350,6 +347,13 @@ export default {
     const backing = ref(false)
     const restoring = ref(false)
     const cleaning = ref(false)
+    
+    // 备份频率选项
+    const backupFrequencyOptions = [
+      { label: '每天', value: 'daily' },
+      { label: '每周', value: 'weekly' },
+      { label: '每月', value: 'monthly' }
+    ]
     
     // 本地设置状态
     const localSettings = reactive({
@@ -918,6 +922,7 @@ export default {
       logSize,
       downloadHistoryCount,
       readingHistoryCount,
+      backupFrequencyOptions,
       updateSettings,
       createFullBackup,
       createLibraryBackup,
@@ -1068,9 +1073,9 @@ export default {
 .setting-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 1rem 0;
   border-bottom: 1px solid var(--border-color);
+  gap: 1rem;
 }
 
 .setting-item:last-child {
@@ -1079,7 +1084,7 @@ export default {
 
 .setting-label {
   flex: 1;
-  margin-right: 1rem;
+  min-width: 0;
 }
 
 .label-text {

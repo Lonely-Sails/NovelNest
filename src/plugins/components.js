@@ -5,7 +5,7 @@
 import Modal from '@/components/Modal.vue'
 import Toast from '@/components/Toast.vue'
 import Loading from '@/components/Loading.vue'
-import { BaseButton, BaseCard, BaseBadge, BaseInput, BaseSwitch } from '@/components/base'
+import { BaseButton, BaseCard, BaseBadge, BaseInput, BaseSwitch, BaseSelect } from '@/components/base'
 
 // 要全局注册的组件列表
 const components = {
@@ -15,6 +15,7 @@ const components = {
   BaseBadge,
   BaseInput,
   BaseSwitch,
+  BaseSelect,
 
   // 功能性组件
   Modal,

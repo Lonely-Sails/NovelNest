@@ -4,13 +4,15 @@ import BaseButton from './BaseButton.vue'
 import BaseInput from './BaseInput.vue'
 import BaseSwitch from './BaseSwitch.vue'
 import BaseBadge from './BaseBadge.vue'
+import BaseSelect from './BaseSelect.vue'
 
 export {
   BaseCard,
   BaseButton,
   BaseInput,
   BaseSwitch,
-  BaseBadge
+  BaseBadge,
+  BaseSelect
 }
 
 // 默认导出所有组件
@@ -19,5 +21,6 @@ export default {
   BaseButton,
   BaseInput,
   BaseSwitch,
-  BaseBadge
+  BaseBadge,
+  BaseSelect
 }

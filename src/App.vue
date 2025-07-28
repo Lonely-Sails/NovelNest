@@ -28,7 +28,7 @@ const isActive = (path) => route.path === path
 const handleMenuClick = async (item) => {
   if (item.type === 'window' && item.path === '/settings') {
     try {
-      await invoke('open_window', { router: 'settings' })
+      await invoke('open_window', { router: 'settings', title: '设置' })
     } catch (error) {
       console.error('打开设置窗口失败:', error)
     }

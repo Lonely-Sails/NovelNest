@@ -3,9 +3,11 @@
     class="book-card" 
     :class="{ compact }"
     hoverable
+    clickable
     @click="$emit('click', book)"
   >
-    <template #header>
+    <!-- 图书封面和基本信息 -->
+    <div class="book-header">
       <div class="book-cover">
         <div class="book-cover-placeholder">
           <span class="book-icon">📖</span>
@@ -13,20 +15,21 @@
         <BaseBadge 
           :variant="getFormatVariant(book.format)" 
           class="book-format-badge"
+          size="small"
         >
           {{ book.format?.toUpperCase() }}
         </BaseBadge>
       </div>
       
       <div class="book-info">
-        <h3 class="book-title">{{ book.title }}</h3>
-        <p class="book-author">{{ book.author || '未知作者' }}</p>
+        <h3 class="book-title" :title="book.title">{{ book.title }}</h3>
+        <p class="book-author" :title="book.author || '未知作者'">{{ book.author || '未知作者' }}</p>
         <div class="book-meta">
           <span class="book-size">{{ formatFileSize(book.file_size) }}</span>
           <span class="book-date">{{ formatDate(book.created_at) }}</span>
         </div>
       </div>
-    </template>
+    </div>
 
     <!-- 阅读进度 -->
     <div class="progress-section" v-if="book.reading_progress > 0">
@@ -49,13 +52,15 @@
       </BaseBadge>
     </div>
 
-    <template #actions v-if="actions && actions.length > 0">
+    <!-- 操作按钮 -->
+    <div class="book-actions" v-if="actions && actions.length > 0">
       <BaseButton 
         v-if="actions.includes('read')"
         @click.stop="$emit('read', book)"
         variant="primary"
         size="small"
         icon="📖"
+        class="action-btn"
       >
         {{ book.reading_progress > 0 ? '继续阅读' : '开始阅读' }}
       </BaseButton>
@@ -63,23 +68,14 @@
       <BaseButton 
         v-if="actions.includes('edit')"
         @click.stop="$emit('edit', book)"
-        variant="secondary"
+        variant="ghost"
         size="small"
         icon="✏️"
+        class="action-btn"
       >
         编辑
       </BaseButton>
-      
-      <BaseButton 
-        v-if="actions.includes('delete')"
-        @click.stop="$emit('delete', book)"
-        variant="danger"
-        size="small"
-        icon="🗑️"
-      >
-        删除
-      </BaseButton>
-    </template>
+    </div>
   </BaseCard>
 </template>
 
@@ -136,19 +132,19 @@ export default {
 <style scoped>
 .book-card {
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
-.book-card.compact {
-  padding: 1rem;
+.book-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
-.book-card.compact .book-cover {
-  width: 60px;
-  height: 80px;
-}
-
-.book-card.compact .book-title {
-  font-size: 1rem;
+/* 图书头部布局 */
+.book-header {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .book-cover {
@@ -156,7 +152,6 @@ export default {
   width: 80px;
   height: 120px;
   flex-shrink: 0;
-  margin-right: 1rem;
 }
 
 .book-cover-placeholder {
@@ -174,13 +169,17 @@ export default {
 
 .book-format-badge {
   position: absolute;
-  top: -6px;
-  right: -6px;
+  top: -4px;
+  right: -4px;
+  z-index: 1;
 }
 
 .book-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .book-title {
@@ -191,6 +190,7 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.3;
 }
 
 .book-author {
@@ -207,10 +207,12 @@ export default {
   gap: 1rem;
   font-size: 0.8rem;
   color: var(--text-muted);
+  margin-top: auto;
 }
 
+/* 阅读进度 */
 .progress-section {
-  margin: 1rem 0;
+  margin-bottom: 1rem;
 }
 
 .progress-info {
@@ -245,16 +247,61 @@ export default {
   transition: width 0.3s ease;
 }
 
+/* 最近阅读 */
 .last-read {
-  margin-top: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+/* 操作按钮 */
+.book-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-start;
+  align-items: center;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.action-btn {
+  flex: 0 0 auto;
+}
+
+.action-btn-danger:hover {
+  color: var(--error-color) !important;
+  background-color: var(--error-bg) !important;
+}
+
+/* 紧凑模式 */
+.book-card.compact .book-header {
+  margin-bottom: 0.75rem;
+}
+
+.book-card.compact .book-cover {
+  width: 60px;
+  height: 80px;
+}
+
+.book-card.compact .book-cover-placeholder {
+  font-size: 1.5rem;
+}
+
+.book-card.compact .book-title {
+  font-size: 1rem;
+}
+
+.book-card.compact .book-actions {
+  padding-top: 0.5rem;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+  .book-header {
+    gap: 0.75rem;
+  }
+  
   .book-cover {
     width: 60px;
     height: 90px;
-    margin-right: 0.75rem;
   }
   
   .book-cover-placeholder {
@@ -268,6 +315,44 @@ export default {
   .book-meta {
     flex-direction: column;
     gap: 0.25rem;
+  }
+  
+  .book-actions {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  
+  .action-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .book-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .book-cover {
+    width: 80px;
+    height: 120px;
+  }
+  
+  .book-info {
+    width: 100%;
+  }
+  
+  .book-title,
+  .book-author {
+    white-space: normal;
+    text-overflow: unset;
+    overflow: visible;
+  }
+  
+  .book-meta {
+    justify-content: center;
   }
 }
 </style>

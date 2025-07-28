@@ -1,11 +1,7 @@
 <template>
-  <div class="reader" v-if="book" :class="{ 'fullscreen': isFullscreen }">
+  <div class="reader" v-if="book">
     <!-- 阅读器头部 -->
-    <div class="reader-header" v-show="!isFullscreen || showControls">
-      <BaseButton @click="$router.back()" variant="ghost" icon="←">
-        返回
-      </BaseButton>
-
+    <div class="reader-header" v-show="showControls">
       <div class="book-info">
         <h2>{{ book.title }}</h2>
         <span class="author">{{ book.author || '未知作者' }}</span>
@@ -17,8 +13,6 @@
       <div class="reader-controls">
         <BaseButton @click="toggleSearch" variant="ghost" size="small" title="搜索 (Ctrl+F)" icon="🔍" />
         <BaseButton @click="toggleBookmarks" variant="ghost" size="small" title="书签 (B)" icon="📌" />
-        <BaseButton @click="toggleFullscreen" variant="ghost" size="small" title="全屏 (F11)"
-          :icon="isFullscreen ? '🗗' : '🗖'" />
         <BaseButton @click="toggleSettings" variant="ghost" size="small" title="设置 (S)" icon="⚙️" />
         <BaseButton @click="toggleToc" variant="ghost" size="small" title="目录 (T)" icon="📋" />
       </div>
@@ -40,7 +34,9 @@
           </h1>
 
           <!-- 文本内容 -->
-          <div class="content-text" v-html="formattedContent"></div>
+          <div class="content-text">
+            <p v-for="(line, index) in content" :key="index">{{ line }}</p>
+          </div>
 
           <!-- 翻页提示 -->
           <div class="page-hint" v-if="showPageHint">
@@ -124,16 +120,6 @@
                   @input="updateSettings" class="range-input">
                 <button @click="adjustMargin(5)" class="adjust-btn">+</button>
                 <span class="value">{{ settings.pageMargin }}px</span>
-              </div>
-            </div>
-
-            <!-- 页面宽度设置 -->
-            <div class="setting-group">
-              <label>页面宽度</label>
-              <div class="range-control">
-                <input v-model.number="settings.maxWidth" type="range" min="600" max="1200" step="50"
-                  @input="updateSettings" class="range-input">
-                <span class="value">{{ settings.maxWidth }}px</span>
               </div>
             </div>
 
@@ -234,7 +220,7 @@
     </div>
 
     <!-- 阅读器底部 -->
-    <div class="reader-footer" v-show="!isFullscreen || showControls">
+    <div class="reader-footer" v-show="showControls">
       <div class="progress-section">
         <div class="progress-info">
           <span class="page-info">{{ currentPage + 1 }} / {{ totalPages }}</span>
@@ -294,7 +280,7 @@ const { showSuccess, showError, showInfo } = useToast()
 
 // 基础状态
 const book = ref(null)
-const content = ref('')
+const content = ref([])
 const loading = ref(false)
 const readingArea = ref(null)
 const bookmarks = ref([])
@@ -304,7 +290,6 @@ const showSettings = ref(false)
 const showToc = ref(false)
 const showSearch = ref(false)
 const showBookmarks = ref(false)
-const isFullscreen = ref(false)
 const showControls = ref(true)
 const showPageHint = ref(false)
 
@@ -322,7 +307,6 @@ const settings = ref({
   fontFamily: 'system',
   theme: 'light',
   pageMargin: 20,
-  maxWidth: 800,
   showChapterTitle: true,
   enablePageAnimation: true,
   autoSaveProgress: true,
@@ -368,17 +352,6 @@ const hasNextChapter = computed(() => {
   return currentChapterIndex.value < chapters.value.length - 1
 })
 
-const formattedContent = computed(() => {
-  if (!content.value) return ''
-
-  // 简单的文本格式化
-  return content.value
-    .replace(/\n\s*\n/g, '</p><p>')
-    .replace(/^/, '<p>')
-    .replace(/$/, '</p>')
-    .replace(/<p><\/p>/g, '')
-})
-
 const readerStyles = computed(() => {
   const themeStyles = getThemeStyles(settings.value.theme)
 
@@ -387,7 +360,6 @@ const readerStyles = computed(() => {
     lineHeight: settings.value.lineHeight,
     fontFamily: getFontFamilyStyle(settings.value.fontFamily),
     padding: settings.value.pageMargin + 'px',
-    maxWidth: settings.value.maxWidth + 'px',
     margin: '0 auto',
     ...themeStyles
   }
@@ -420,7 +392,7 @@ const loadBook = async () => {
     } else {
       // 如果没有章节数据，直接加载全部内容
       const contentData = await invoke('get_book_content', { bookId })
-      content.value = contentData || ''
+      content.value = contentData || []
     }
 
     calculatePages()
@@ -449,7 +421,7 @@ const loadChapterContent = async (chapterIndex) => {
       chapterIndex: chapterIndex
     })
 
-    content.value = chapterContent.content || ''
+    content.value = chapterContent?.content ?? []
     currentChapterIndex.value = chapterIndex
     currentPage.value = 0
     calculatePages()
@@ -497,8 +469,8 @@ const calculatePages = () => {
   }
 
   // 简化的页数计算 - 实际应用中可能需要更复杂的算法
+  const wordCount = content.value.join('').length
   const wordsPerPage = settings.value.fontSize > 18 ? 600 : 800
-  const wordCount = content.value.length
   totalPages.value = Math.max(1, Math.ceil(wordCount / wordsPerPage))
 }
 
@@ -529,16 +501,6 @@ const toggleBookmarks = () => {
   showSettings.value = false
   showToc.value = false
   showSearch.value = false
-}
-
-const toggleFullscreen = () => {
-  isFullscreen.value = !isFullscreen.value
-
-  if (isFullscreen.value) {
-    document.documentElement.requestFullscreen?.()
-  } else {
-    document.exitFullscreen?.()
-  }
 }
 
 const setTheme = (theme) => {
@@ -630,7 +592,6 @@ const resetSettings = () => {
     fontFamily: 'system',
     theme: 'light',
     pageMargin: 20,
-    maxWidth: 800,
     showChapterTitle: true,
     enablePageAnimation: true,
     autoSaveProgress: true,
@@ -892,37 +853,17 @@ const loadReadingProgress = async () => {
   }
 }
 
-const getContentPreview = (position) => {
-  if (!content.value) return ''
-
-  const index = Math.floor(position * content.value.length)
-  const start = Math.max(0, index - 50)
-  const end = Math.min(content.value.length, index + 100)
-
-  return content.value.substring(start, end).trim()
-}
-
 // 自动隐藏控制栏（全屏模式下）
 let hideControlsTimer = null
 const setHideControlsTimer = () => {
   clearTimeout(hideControlsTimer)
   showControls.value = true
-
   hideControlsTimer = setTimeout(() => {
-    if (isFullscreen.value) {
-      showControls.value = false
-    }
+    showControls.value = false
   }, 3000)
 }
 
-const resetHideControlsTimer = () => {
-  clearTimeout(hideControlsTimer)
-  hideControlsTimer = null
-}
-
-const handleMouseMove = () => {
-  if (!isFullscreen.value) return
-
+const handleClick = () => {
   setHideControlsTimer()
 }
 
@@ -955,9 +896,6 @@ const handleKeydown = (event) => {
       break
 
     case 'Escape':
-      if (isFullscreen.value) {
-        toggleFullscreen()
-      }
       showSettings.value = false
       showToc.value = false
       showSearch.value = false
@@ -1011,16 +949,16 @@ onMounted(async () => {
   await loadBook()
 
   // 添加事件监听
+  document.addEventListener('click', handleClick)
   document.addEventListener('keydown', handleKeydown)
-  document.addEventListener('mousemove', handleMouseMove)
 
   // 显示翻页提示
   showPageHintTimer()
 })
 
 onUnmounted(() => {
+  document.removeEventListener('click', handleClick)
   document.removeEventListener('keydown', handleKeydown)
-  document.removeEventListener('mousemove', handleMouseMove)
   clearTimeout(hideControlsTimer)
 })
 </script>
@@ -1034,15 +972,6 @@ onUnmounted(() => {
   color: var(--text-primary);
   position: relative;
   overflow: hidden;
-}
-
-.reader.fullscreen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 9999;
 }
 
 /* 阅读器头部 */
