@@ -1,14 +1,12 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { invoke } from '@tauri-apps/api/core'
 import { useToast } from './composables/useToast'
-import router from './router'
 import ThemeToggle from './components/ThemeToggle.vue'
-// Toast组件已全局注册，无需导入
 
 const route = useRoute()
-// toastState和hideToast在模板中使用，不是未使用的变量
+const router = useRouter()
 const { toastState, hideToast } = useToast()
 
 // 导航菜单项
@@ -17,7 +15,7 @@ const menuItems = [
   { name: '图书库', path: '/library', icon: '📚', type: 'route' },
   { name: '在线下载', path: '/downloads', icon: '🌐', type: 'route' },
   { name: '插件管理', path: '/plugins', icon: '🔌', type: 'route' },
-  { name: '设置', path: '/settings', icon: '⚙️', type: 'window' }
+  { name: '设置', route: 'settings', icon: '⚙️', type: 'window' }
 ]
 
 const sidebar = ref(true);
@@ -26,9 +24,9 @@ const isActive = (path) => route.path === path
 
 // 处理菜单项点击
 const handleMenuClick = async (item) => {
-  if (item.type === 'window' && item.path === '/settings') {
+  if (item.type === 'window') {
     try {
-      await invoke('open_window', { router: 'settings', title: '设置' })
+      await invoke('open_window', { router: item.route, title: item.name })
     } catch (error) {
       console.error('打开设置窗口失败:', error)
     }
@@ -201,7 +199,6 @@ onMounted(() => {
   cursor: pointer;
   font-family: inherit;
   width: 100%;
-  float: bottom;
 }
 
 .main-content {

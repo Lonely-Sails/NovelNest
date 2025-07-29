@@ -1,26 +1,16 @@
 <template>
-  <BaseCard 
-    class="book-card" 
-    :class="{ compact }"
-    hoverable
-    clickable
-    @click="$emit('click', book)"
-  >
+  <BaseCard class="book-card" :class="{ compact }" hoverable clickable @click="$emit('click', book)">
     <!-- 图书封面和基本信息 -->
     <div class="book-header">
       <div class="book-cover">
         <div class="book-cover-placeholder">
           <span class="book-icon">📖</span>
         </div>
-        <BaseBadge 
-          :variant="getFormatVariant(book.format)" 
-          class="book-format-badge"
-          size="small"
-        >
+        <BaseBadge :variant="getFormatVariant(book.format)" class="book-format-badge" size="small">
           {{ book.format?.toUpperCase() }}
         </BaseBadge>
       </div>
-      
+
       <div class="book-info">
         <h3 class="book-title" :title="book.title">{{ book.title }}</h3>
         <p class="book-author" :title="book.author || '未知作者'">{{ book.author || '未知作者' }}</p>
@@ -28,20 +18,6 @@
           <span class="book-size">{{ formatFileSize(book.file_size) }}</span>
           <span class="book-date">{{ formatDate(book.created_at) }}</span>
         </div>
-      </div>
-    </div>
-
-    <!-- 阅读进度 -->
-    <div class="progress-section" v-if="book.reading_progress > 0">
-      <div class="progress-info">
-        <span class="progress-label">阅读进度</span>
-        <span class="progress-percent">{{ Math.round(book.reading_progress * 100) }}%</span>
-      </div>
-      <div class="progress-bar">
-        <div 
-          class="progress-fill" 
-          :style="{ width: book.reading_progress * 100 + '%' }"
-        ></div>
       </div>
     </div>
 
@@ -54,25 +30,13 @@
 
     <!-- 操作按钮 -->
     <div class="book-actions" v-if="actions && actions.length > 0">
-      <BaseButton 
-        v-if="actions.includes('read')"
-        @click.stop="$emit('read', book)"
-        variant="primary"
-        size="small"
-        icon="📖"
-        class="action-btn"
-      >
+      <BaseButton v-if="actions.includes('read')" @click.stop="$emit('read', book)" variant="primary" size="small"
+        icon="📖" class="action-btn">
         {{ book.reading_progress > 0 ? '继续阅读' : '开始阅读' }}
       </BaseButton>
-      
-      <BaseButton 
-        v-if="actions.includes('edit')"
-        @click.stop="$emit('edit', book)"
-        variant="ghost"
-        size="small"
-        icon="✏️"
-        class="action-btn"
-      >
+
+      <BaseButton v-if="actions.includes('edit')" @click.stop="$emit('edit', book)" variant="ghost" size="small"
+        icon="✏️" class="action-btn">
         编辑
       </BaseButton>
     </div>
@@ -107,7 +71,7 @@ export default {
       }
       return formatMap[format?.toLowerCase()] || 'secondary'
     },
-    
+
     formatFileSize(bytes) {
       if (!bytes || bytes === 0) return '0 B'
       const k = 1024
@@ -115,7 +79,7 @@ export default {
       const i = Math.floor(Math.log(bytes) / Math.log(k))
       return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
     },
-    
+
     formatDate(dateString) {
       if (!dateString) return ''
       const date = new Date(dateString)
@@ -298,30 +262,30 @@ export default {
   .book-header {
     gap: 0.75rem;
   }
-  
+
   .book-cover {
     width: 60px;
     height: 90px;
   }
-  
+
   .book-cover-placeholder {
     font-size: 1.5rem;
   }
-  
+
   .book-title {
     font-size: 1rem;
   }
-  
+
   .book-meta {
     flex-direction: column;
     gap: 0.25rem;
   }
-  
+
   .book-actions {
     flex-wrap: wrap;
     gap: 0.25rem;
   }
-  
+
   .action-btn {
     flex: 1 1 auto;
     min-width: 0;
@@ -334,23 +298,23 @@ export default {
     align-items: center;
     text-align: center;
   }
-  
+
   .book-cover {
     width: 80px;
     height: 120px;
   }
-  
+
   .book-info {
     width: 100%;
   }
-  
+
   .book-title,
   .book-author {
     white-space: normal;
     text-overflow: unset;
     overflow: visible;
   }
-  
+
   .book-meta {
     justify-content: center;
   }

@@ -45,7 +45,6 @@
           <BaseSelect
             v-model="selectedFormat"
             :options="formatOptions"
-            placeholder="全部"
             size="small"
             @change="applyFilters"
           />
@@ -125,161 +124,157 @@
 
     <!-- 图书详情模态框 -->
     <Modal v-if="showBookDetail" @close="closeBookDetail" title="图书详情" size="large">
-      <div class="book-detail-content">
-        <div class="book-detail-header">
-          <div class="book-cover-large">
-            <div class="book-cover-placeholder">
-              <span class="book-icon">📖</span>
-            </div>
-            <div class="book-format-badge">{{ selectedBook?.format?.toUpperCase() }}</div>
+      <div class="book-detail-header">
+        <div class="book-cover-large">
+          <div class="book-cover-placeholder">
+            <span class="book-icon">📖</span>
           </div>
-          <div class="book-info-large">
-            <h2 class="book-title-large">{{ selectedBook?.title }}</h2>
-            <p class="book-author-large">{{ selectedBook?.author || '未知作者' }}</p>
-            <div class="book-meta-large">
-              <div class="meta-row">
-                <span class="meta-label">文件路径:</span>
-                <span class="meta-value" :title="selectedBook?.file_path">
-                  {{ truncatePath(selectedBook?.file_path) }}
-                </span>
-              </div>
-              <div class="meta-row">
-                <span class="meta-label">文件大小:</span>
-                <span class="meta-value">{{ formatFileSize(selectedBook?.file_size) }}</span>
-              </div>
-              <div class="meta-row">
-                <span class="meta-label">文件格式:</span>
-                <span class="meta-value">{{ selectedBook?.format?.toUpperCase() }}</span>
-              </div>
-              <div class="meta-row">
-                <span class="meta-label">添加时间:</span>
-                <span class="meta-value">{{ formatDate(selectedBook?.created_at) }}</span>
-              </div>
-              <div class="meta-row" v-if="selectedBook?.last_read">
-                <span class="meta-label">最近阅读:</span>
-                <span class="meta-value">{{ formatDate(selectedBook?.last_read) }}</span>
-              </div>
-              <div class="meta-row">
-                <span class="meta-label">阅读进度:</span>
-                <span class="meta-value">{{ Math.round((selectedBook?.reading_progress || 0) * 100) }}%</span>
-              </div>
-            </div>
-            <div class="progress-section">
-              <div class="progress-bar-large">
-                <div class="progress-fill" :style="{ width: (selectedBook?.reading_progress || 0) * 100 + '%' }"></div>
-              </div>
-              <div class="progress-actions">
-                <button @click="resetProgress" class="btn-link" v-if="selectedBook?.reading_progress > 0">
-                  重置进度
-                </button>
-                <button @click="markAsCompleted" class="btn-link" v-if="selectedBook?.reading_progress < 1">
-                  标记为已读
-                </button>
-              </div>
-            </div>
-          </div>
+          <div class="book-format-badge">{{ selectedBook?.format?.toUpperCase() }}</div>
         </div>
-
-        <!-- 阅读历史 -->
-        <div class="reading-history" v-if="readingHistory.length > 0">
-          <h3>阅读历史</h3>
-          <div class="history-list">
-            <div v-for="record in readingHistory" :key="record.id" class="history-item">
-              <div class="history-date">{{ formatDate(record.read_at) }}</div>
-              <div class="history-duration" v-if="record.duration">
-                阅读时长: {{ formatDuration(record.duration) }}
-              </div>
+        <div class="book-info-large">
+          <h2 class="book-title-large">{{ selectedBook?.title }}</h2>
+          <p class="book-author-large">{{ selectedBook?.author || '未知作者' }}</p>
+          <div class="book-meta-large">
+            <div class="meta-row">
+              <span class="meta-label">文件路径:</span>
+              <span class="meta-value" :title="selectedBook?.file_path">
+                {{ truncatePath(selectedBook?.file_path) }}
+              </span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">文件大小:</span>
+              <span class="meta-value">{{ formatFileSize(selectedBook?.file_size) }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">文件格式:</span>
+              <span class="meta-value">{{ selectedBook?.format?.toUpperCase() }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">添加时间:</span>
+              <span class="meta-value">{{ formatDate(selectedBook?.created_at) }}</span>
+            </div>
+            <div class="meta-row" v-if="selectedBook?.last_read">
+              <span class="meta-label">最近阅读:</span>
+              <span class="meta-value">{{ formatDate(selectedBook?.last_read) }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">阅读进度:</span>
+              <span class="meta-value">{{ Math.round((selectedBook?.reading_progress || 0) * 100) }}%</span>
             </div>
           </div>
-        </div>
-
-        <!-- 书签列表 -->
-        <div class="bookmarks-section" v-if="bookmarks.length > 0">
-          <h3>书签</h3>
-          <div class="bookmarks-list">
-            <div v-for="bookmark in bookmarks" :key="bookmark.id" class="bookmark-item">
-              <div class="bookmark-info">
-                <div class="bookmark-note">{{ bookmark.note || '无备注' }}</div>
-                <div class="bookmark-meta">
-                  <span>位置: {{ bookmark.position }}</span>
-                  <span v-if="bookmark.chapter_index">章节: {{ bookmark.chapter_index + 1 }}</span>
-                  <span>{{ formatDate(bookmark.created_at) }}</span>
-                </div>
-              </div>
-              <button @click="deleteBookmark(bookmark.id)" class="bookmark-delete" title="删除书签">
-                🗑️
+          <div class="progress-section">
+            <div class="progress-bar-large">
+              <div class="progress-fill" :style="{ width: (selectedBook?.reading_progress || 0) * 100 + '%' }"></div>
+            </div>
+            <div class="progress-actions">
+              <button @click="resetProgress" class="btn-link" v-if="selectedBook?.reading_progress > 0">
+                重置进度
+              </button>
+              <button @click="markAsCompleted" class="btn-link" v-if="selectedBook?.reading_progress < 1">
+                标记为已读
               </button>
             </div>
           </div>
         </div>
+      </div>
 
-        <div class="book-detail-actions">
-          <BaseButton @click="openBook(selectedBook)" variant="primary" icon="📖">
-            {{ selectedBook?.reading_progress > 0 ? '继续阅读' : '开始阅读' }}
-          </BaseButton>
-          <BaseButton @click="showEditModal" variant="secondary" icon="✏️">
-            编辑信息
-          </BaseButton>
-          <BaseButton @click="confirmDeleteBook(selectedBook)" variant="danger" icon="🗑️">
-            删除图书
-          </BaseButton>
+      <!-- 阅读历史 -->
+      <div class="reading-history" v-if="readingHistory.length > 0">
+        <h3>阅读历史</h3>
+        <div class="history-list">
+          <div v-for="record in readingHistory" :key="record.id" class="history-item">
+            <div class="history-date">{{ formatDate(record.read_at) }}</div>
+            <div class="history-duration" v-if="record.duration">
+              阅读时长: {{ formatDuration(record.duration) }}
+            </div>
+          </div>
         </div>
       </div>
+
+      <!-- 书签列表 -->
+      <div class="bookmarks-section" v-if="bookmarks.length > 0">
+        <h3>书签</h3>
+        <div class="bookmarks-list">
+          <div v-for="bookmark in bookmarks" :key="bookmark.id" class="bookmark-item">
+            <div class="bookmark-info">
+              <div class="bookmark-note">{{ bookmark.note || '无备注' }}</div>
+              <div class="bookmark-meta">
+                <span>位置: {{ bookmark.position }}</span>
+                <span v-if="bookmark.chapter_index">章节: {{ bookmark.chapter_index + 1 }}</span>
+                <span>{{ formatDate(bookmark.created_at) }}</span>
+              </div>
+            </div>
+            <button @click="deleteBookmark(bookmark.id)" class="bookmark-delete" title="删除书签">
+              🗑️
+            </button>
+          </div>
+        </div>
+      </div>
+
+     <template #actions>
+      <BaseButton @click="openBook(selectedBook)" variant="primary" icon="📖">
+        {{ selectedBook?.reading_progress > 0 ? '继续阅读' : '开始阅读' }}
+      </BaseButton>
+      <BaseButton @click="showEditModal" variant="secondary" icon="✏️">
+        编辑信息
+      </BaseButton>
+      <BaseButton @click="confirmDeleteBook(selectedBook)" variant="danger" icon="🗑️">
+        删除图书
+      </BaseButton>
+     </template>
+
     </Modal>
 
     <!-- 图书编辑模态框 -->
     <Modal v-if="showEditBook" @close="closeEditModal" title="编辑图书信息" size="medium">
-      <div class="book-edit-content">
-        <form @submit.prevent="saveBookEdit" class="edit-form">
-          <div class="form-group">
-            <label for="edit-title" class="form-label">书名 *</label>
-            <input id="edit-title" v-model="editForm.title" type="text" class="form-input" required
-              placeholder="请输入书名" />
-          </div>
+      <form @submit.prevent="saveBookEdit" class="edit-form">
+        <div class="form-group">
+          <label for="edit-title" class="form-label">书名 *</label>
+          <input id="edit-title" v-model="editForm.title" type="text" class="form-input" required
+            placeholder="请输入书名" />
+        </div>
 
-          <div class="form-group">
-            <label for="edit-author" class="form-label">作者</label>
-            <input id="edit-author" v-model="editForm.author" type="text" class="form-input" placeholder="请输入作者名" />
-          </div>
+        <div class="form-group">
+          <label for="edit-author" class="form-label">作者</label>
+          <input id="edit-author" v-model="editForm.author" type="text" class="form-input" placeholder="请输入作者名" />
+        </div>
 
-          <div class="form-group">
-            <label for="edit-progress" class="form-label">阅读进度</label>
-            <div class="progress-input-group">
-              <input id="edit-progress" v-model.number="editForm.progress" type="range" min="0" max="100"
-                class="progress-slider" />
-              <span class="progress-value">{{ editForm.progress }}%</span>
-            </div>
+        <div class="form-group">
+          <label for="edit-progress" class="form-label">阅读进度</label>
+          <div class="progress-input-group">
+            <input id="edit-progress" v-model.number="editForm.progress" type="range" min="0" max="100"
+              class="progress-slider" />
+            <span class="progress-value">{{ editForm.progress }}%</span>
           </div>
+        </div>
 
-          <div class="form-actions">
-            <BaseButton type="button" @click="closeEditModal" variant="secondary">
-              取消
-            </BaseButton>
-            <BaseButton type="submit" variant="primary" :loading="saving">
-              保存
-            </BaseButton>
-          </div>
-        </form>
-      </div>
+        <div class="form-actions">
+          <BaseButton type="button" @click="closeEditModal" variant="secondary">
+            取消
+          </BaseButton>
+          <BaseButton type="submit" variant="primary" :loading="saving">
+            保存
+          </BaseButton>
+        </div>
+      </form>
     </Modal>
 
     <!-- 删除确认对话框 -->
     <Modal v-if="showDeleteConfirm" @close="cancelDelete" title="确认删除" size="small">
-      <div class="delete-confirm-content">
-        <p>确定要删除《{{ bookToDelete?.title }}》吗？</p>
-        <p class="delete-warning">此操作不可撤销，图书文件将被永久删除。</p>
-        <div class="delete-actions">
-          <BaseButton @click="cancelDelete" variant="secondary">取消</BaseButton>
-          <BaseButton @click="executeDelete" variant="danger" :loading="deleting">
-            确认删除
-          </BaseButton>
-        </div>
-      </div>
+      <p>确定要删除《{{ bookToDelete?.title }}》吗？</p>
+      <p class="delete-warning">此操作不可撤销，图书文件将被永久删除。</p>
+
+      <template #actions>
+        <BaseButton @click="cancelDelete" variant="secondary">取消</BaseButton>
+        <BaseButton @click="executeDelete" variant="danger" :loading="deleting">
+          确认删除
+        </BaseButton>
+      </template>
     </Modal>
 
     <!-- 图书导入器 -->
     <Modal v-if="showBookImporter" @close="closeImporter" title="导入图书" size="large">
-      <UnifiedBookImporter @import-complete="handleImportComplete" />
+      <BookImporter @import-complete="handleImportComplete" />
     </Modal>
 
 
@@ -294,7 +289,7 @@ import { useToast } from '@/composables/useToast'
 import { invoke } from '@tauri-apps/api/core'
 import BookCard from '@/components/BookCard.vue'
 import SearchBar from '@/components/SearchBar.vue'
-import UnifiedBookImporter from '@/components/UnifiedBookImporter.vue'
+import BookImporter from '@/components/BookImporter.vue'
 // 全局注册的组件无需导入：Modal, Toast, Loading, BaseButton、BaseSelect等
 
 export default {
@@ -302,7 +297,7 @@ export default {
   components: {
     BookCard,
     SearchBar,
-    UnifiedBookImporter
+    BookImporter
   },
   setup() {
     const router = useRouter()
@@ -873,7 +868,6 @@ export default {
   gap: 2rem;
   flex-wrap: wrap;
   padding-top: 1rem;
-  border-top: 1px solid var(--border-color);
 }
 
 .filter-group {
@@ -948,12 +942,6 @@ export default {
 }
 
 /* 图书详情模态框 */
-.book-detail-content {
-  padding: 1.5rem;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
 .book-detail-header {
   display: flex;
   gap: 2rem;
@@ -1175,19 +1163,6 @@ export default {
   background-color: #dc3545;
 }
 
-.book-detail-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color);
-}
-
-/* 图书编辑模态框 */
-.book-edit-content {
-  padding: 1.5rem;
-}
-
 .edit-form {
   display: flex;
   flex-direction: column;
@@ -1301,27 +1276,10 @@ export default {
   border-top: 1px solid var(--border-color);
 }
 
-/* 删除确认对话框 */
-.delete-confirm-content {
-  text-align: center;
-  padding: 1rem;
-}
-
-.delete-confirm-content p {
-  margin-bottom: 1rem;
-  color: var(--text-primary);
-}
-
 .delete-warning {
   color: #dc3545;
   font-size: 0.9rem;
   margin-bottom: 1.5rem !important;
-}
-
-.delete-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
 }
 
 /* 响应式设计 */
@@ -1362,14 +1320,6 @@ export default {
 
   .book-cover-large {
     align-self: center;
-  }
-
-  .book-detail-actions {
-    flex-direction: column;
-  }
-
-  .delete-actions {
-    flex-direction: column;
   }
 }
 </style>

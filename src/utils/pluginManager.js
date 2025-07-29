@@ -21,36 +21,33 @@ export class PluginManager {
   async loadPlugin(sourceId, pluginCode) {
     try {
       // 检查是否已加载
-      if (this.loadedPlugins.has(sourceId)) {
+      if (this.loadedPlugins.has(sourceId))
         return this.loadedPlugins.get(sourceId)
-      }
 
       // 创建沙箱环境
       const sandbox = this.createSandbox(sourceId)
-      
+
       // 在沙箱中执行插件代码
       const pluginFunction = new Function('window', 'console', pluginCode)
       pluginFunction(sandbox, this.createPluginConsole(sourceId))
-      
+
       // 获取插件实例
       const plugin = sandbox.bookSourcePlugin
-      if (!plugin) {
-        throw new Error('插件未正确导出 bookSourcePlugin')
-      }
+      if (!plugin) throw new Error('插件未正确导出 bookSourcePlugin')
 
       // 验证插件接口
       this.validatePluginInterface(plugin)
-      
+
       // 包装插件方法以添加错误处理和超时控制
       const wrappedPlugin = this.wrapPluginMethods(sourceId, plugin)
-      
+
       // 缓存插件实例
       this.loadedPlugins.set(sourceId, wrappedPlugin)
       this.pluginErrors.delete(sourceId) // 清除之前的错误
-      
+
       console.log(`插件 ${sourceId} 加载成功`)
       return wrappedPlugin
-      
+
     } catch (error) {
       const pluginError = pluginErrorHandler.handleError(error, sourceId, 'plugin_load')
       this.pluginErrors.set(sourceId, pluginError.message)
@@ -66,16 +63,16 @@ export class PluginManager {
   createSandbox(sourceId) {
     const sandbox = {
       // 提供受限的 Tauri API
-      __TAURI__: {
+      api: {
         invoke: window.__TAURI__.invoke
       },
-      
+
       // 提供基本的全局对象
       setTimeout: window.setTimeout,
       clearTimeout: window.clearTimeout,
       setInterval: window.setInterval,
       clearInterval: window.clearInterval,
-      
+
       // 提供 Promise 和基本类型
       Promise: window.Promise,
       Array: window.Array,
@@ -86,13 +83,14 @@ export class PluginManager {
       Date: window.Date,
       RegExp: window.RegExp,
       JSON: window.JSON,
-      
+      Math: window.Math,
+
       // 提供编码解码函数
       encodeURIComponent: window.encodeURIComponent,
       decodeURIComponent: window.decodeURIComponent,
       btoa: window.btoa,
       atob: window.atob,
-      
+
       // 插件实例将在这里设置
       bookSourcePlugin: null
     }
@@ -103,13 +101,13 @@ export class PluginManager {
         throw new Error('插件不能访问 window 对象')
       }
     })
-    
+
     Object.defineProperty(sandbox, 'document', {
       get() {
         throw new Error('插件不能访问 document 对象')
       }
     })
-    
+
     Object.defineProperty(sandbox, 'eval', {
       get() {
         throw new Error('插件不能使用 eval 函数')
@@ -126,7 +124,7 @@ export class PluginManager {
    */
   createPluginConsole(sourceId) {
     const prefix = `[Plugin:${sourceId}]`
-    
+
     return {
       log: (...args) => console.log(prefix, ...args),
       info: (...args) => console.info(prefix, ...args),
@@ -142,11 +140,10 @@ export class PluginManager {
    */
   validatePluginInterface(plugin) {
     const requiredMethods = ['search', 'getChapters', 'getChapterContent']
-    
+
     for (const method of requiredMethods) {
-      if (typeof plugin[method] !== 'function') {
+      if (typeof plugin[method] !== 'function')
         throw new Error(`插件缺少必需的方法: ${method}`)
-      }
     }
   }
 
@@ -158,16 +155,14 @@ export class PluginManager {
    */
   wrapPluginMethods(sourceId, plugin) {
     const wrappedPlugin = {}
-    
+
     // 包装所有方法
     for (const [methodName, method] of Object.entries(plugin)) {
-      if (typeof method === 'function') {
+      if (typeof method === 'function')
         wrappedPlugin[methodName] = this.wrapMethod(sourceId, methodName, method)
-      } else {
-        wrappedPlugin[methodName] = method
-      }
+      else wrappedPlugin[methodName] = method
     }
-    
+
     return wrappedPlugin
   }
 
@@ -181,7 +176,7 @@ export class PluginManager {
   wrapMethod(sourceId, methodName, method) {
     return async (...args) => {
       const timeoutId = `${sourceId}_${methodName}_${Date.now()}`
-      
+
       try {
         // 设置超时控制
         const timeoutPromise = new Promise((_, reject) => {
@@ -192,32 +187,32 @@ export class PluginManager {
               sourceId
             ))
           }, this.defaultTimeout)
-          
+
           this.executionTimeouts.set(timeoutId, timeout)
         })
-        
+
         // 执行插件方法
         const methodPromise = method.apply(plugin, args)
-        
+
         // 等待方法执行或超时
         const result = await Promise.race([methodPromise, timeoutPromise])
-        
+
         // 清除超时
         this.clearTimeout(timeoutId)
-        
+
         return result
-        
+
       } catch (error) {
         // 清除超时
         this.clearTimeout(timeoutId)
-        
+
         // 使用错误处理器处理错误
-        const pluginError = error instanceof PluginError 
-          ? error 
+        const pluginError = error instanceof PluginError
+          ? error
           : pluginErrorHandler.handleError(error, sourceId, `method_${methodName}`)
-        
+
         this.pluginErrors.set(`${sourceId}_${methodName}`, pluginError.message)
-        
+
         // 重新抛出错误
         throw pluginError
       }
@@ -243,7 +238,7 @@ export class PluginManager {
   unloadPlugin(sourceId) {
     this.loadedPlugins.delete(sourceId)
     this.pluginErrors.delete(sourceId)
-    
+
     // 清除相关的超时
     for (const [timeoutId, timeout] of this.executionTimeouts.entries()) {
       if (timeoutId.startsWith(sourceId)) {
@@ -251,7 +246,7 @@ export class PluginManager {
         this.executionTimeouts.delete(timeoutId)
       }
     }
-    
+
     console.log(`插件 ${sourceId} 已卸载`)
   }
 
@@ -298,11 +293,11 @@ export class PluginManager {
     for (const timeout of this.executionTimeouts.values()) {
       clearTimeout(timeout)
     }
-    
+
     this.loadedPlugins.clear()
     this.pluginErrors.clear()
     this.executionTimeouts.clear()
-    
+
     console.log('所有插件已清除')
   }
 

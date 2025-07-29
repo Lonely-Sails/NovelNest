@@ -30,7 +30,7 @@ impl DatabaseManager {
 
     /// 初始化数据库表结构
     fn initialize_tables(&self) -> AppResult<()> {
-        let conn: std::sync::MutexGuard<'_, Connection> = self.connection.lock().map_err(|e| {
+        let conn = self.connection.lock().map_err(|e| {
             AppError::Generic(format!("Failed to acquire database lock: {}", e))
         })?;
 
@@ -46,12 +46,23 @@ impl DatabaseManager {
                 file_size INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
                 last_read TEXT,
-                reading_progress REAL DEFAULT 0.0,
+                current_chapter INTEGER DEFAULT 0,
+                current_line_index INTEGER DEFAULT 0,
                 total_chapters INTEGER DEFAULT 0
             )
             "#,
             [],
         )?;
+
+        // 添加新字段的迁移（如果表已存在）
+        let _ = conn.execute(
+            "ALTER TABLE books ADD COLUMN current_chapter INTEGER DEFAULT 0",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE books ADD COLUMN current_line_index INTEGER DEFAULT 0",
+            [],
+        );
 
         // 创建书签表
         conn.execute(
@@ -147,8 +158,8 @@ impl DatabaseManager {
             r#"
             INSERT INTO books (
                 id, title, author, file_path, format, file_size, 
-                created_at, last_read, reading_progress, total_chapters
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+                created_at, last_read, current_chapter, current_line_index, total_chapters
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
             "#,
             params![
                 book.id,
@@ -159,7 +170,8 @@ impl DatabaseManager {
                 book.file_size,
                 book.created_at.to_rfc3339(),
                 book.last_read.map(|dt| dt.to_rfc3339()),
-                book.reading_progress,
+                book.current_chapter,
+                book.current_line_index,
                 book.total_chapters
             ],
         )?;
@@ -176,7 +188,7 @@ impl DatabaseManager {
         let mut stmt = conn.prepare(
             r#"
             SELECT id, title, author, file_path, format, file_size, 
-                   created_at, last_read, reading_progress, total_chapters
+                   created_at, last_read, current_chapter, current_line_index, total_chapters
             FROM books ORDER BY created_at DESC
             "#,
         )?;
@@ -198,15 +210,16 @@ impl DatabaseManager {
                 },
                 file_size: row.get(5)?,
                 created_at: DateTime::parse_from_rfc3339(&created_at_str)
-                    .map_err(|e| rusqlite::Error::InvalidColumnType(6, "created_at".to_string(), rusqlite::types::Type::Text))?
+                    .map_err(|_e| rusqlite::Error::InvalidColumnType(6, "created_at".to_string(), rusqlite::types::Type::Text))?
                     .with_timezone(&Utc),
                 last_read: last_read_str
                     .map(|s| DateTime::parse_from_rfc3339(&s)
                         .map(|dt| dt.with_timezone(&Utc)))
                     .transpose()
-                    .map_err(|e| rusqlite::Error::InvalidColumnType(7, "last_read".to_string(), rusqlite::types::Type::Text))?,
-                reading_progress: row.get(8)?,
-                total_chapters: row.get(9)?,
+                    .map_err(|_e| rusqlite::Error::InvalidColumnType(7, "last_read".to_string(), rusqlite::types::Type::Text))?,
+                current_chapter: row.get(8)?,
+                current_line_index: row.get(9)?,
+                total_chapters: row.get(10)?,
             })
         })?;
 
@@ -227,7 +240,7 @@ impl DatabaseManager {
         let mut stmt = conn.prepare(
             r#"
             SELECT id, title, author, file_path, format, file_size, 
-                   created_at, last_read, reading_progress, total_chapters
+                   created_at, last_read, current_chapter, current_line_index, total_chapters
             FROM books WHERE id = ?1
             "#,
         )?;
@@ -249,15 +262,16 @@ impl DatabaseManager {
                 },
                 file_size: row.get(5)?,
                 created_at: DateTime::parse_from_rfc3339(&created_at_str)
-                    .map_err(|e| rusqlite::Error::InvalidColumnType(6, "created_at".to_string(), rusqlite::types::Type::Text))?
+                    .map_err(|_e| rusqlite::Error::InvalidColumnType(6, "created_at".to_string(), rusqlite::types::Type::Text))?
                     .with_timezone(&Utc),
                 last_read: last_read_str
                     .map(|s| DateTime::parse_from_rfc3339(&s)
                         .map(|dt| dt.with_timezone(&Utc)))
                     .transpose()
-                    .map_err(|e| rusqlite::Error::InvalidColumnType(7, "last_read".to_string(), rusqlite::types::Type::Text))?,
-                reading_progress: row.get(8)?,
-                total_chapters: row.get(9)?,
+                    .map_err(|_e| rusqlite::Error::InvalidColumnType(7, "last_read".to_string(), rusqlite::types::Type::Text))?,
+                current_chapter: row.get(8)?,
+                current_line_index: row.get(9)?,
+                total_chapters: row.get(10)?,
             })
         })?;
 
@@ -277,7 +291,7 @@ impl DatabaseManager {
         let mut stmt = conn.prepare(
             r#"
             SELECT id, title, author, file_path, format, file_size, 
-                   created_at, last_read, reading_progress, total_chapters
+                   created_at, last_read, current_chapter, current_line_index, total_chapters
             FROM books 
             WHERE title LIKE ?1 OR author LIKE ?1
             ORDER BY created_at DESC
@@ -301,15 +315,16 @@ impl DatabaseManager {
                 },
                 file_size: row.get(5)?,
                 created_at: DateTime::parse_from_rfc3339(&created_at_str)
-                    .map_err(|e| rusqlite::Error::InvalidColumnType(6, "created_at".to_string(), rusqlite::types::Type::Text))?
+                    .map_err(|_e| rusqlite::Error::InvalidColumnType(6, "created_at".to_string(), rusqlite::types::Type::Text))?
                     .with_timezone(&Utc),
                 last_read: last_read_str
                     .map(|s| DateTime::parse_from_rfc3339(&s)
                         .map(|dt| dt.with_timezone(&Utc)))
                     .transpose()
-                    .map_err(|e| rusqlite::Error::InvalidColumnType(7, "last_read".to_string(), rusqlite::types::Type::Text))?,
-                reading_progress: row.get(8)?,
-                total_chapters: row.get(9)?,
+                    .map_err(|_e| rusqlite::Error::InvalidColumnType(7, "last_read".to_string(), rusqlite::types::Type::Text))?,
+                current_chapter: row.get(8)?,
+                current_line_index: row.get(9)?,
+                total_chapters: row.get(10)?,
             })
         })?;
 
@@ -331,15 +346,20 @@ impl DatabaseManager {
         Ok(())
     }
 
-    /// 更新阅读进度
-    pub fn update_reading_progress(&self, book_id: &str, progress: f64) -> AppResult<()> {
+    /// 更新阅读进度（章节和行索引）
+    pub fn update_reading_progress(
+        &self, 
+        book_id: &str, 
+        current_chapter: i32, 
+        current_line_index: i32
+    ) -> AppResult<()> {
         let conn = self.connection.lock().map_err(|e| {
             AppError::Generic(format!("Failed to acquire database lock: {}", e))
         })?;
 
         conn.execute(
-            "UPDATE books SET reading_progress = ?1, last_read = ?2 WHERE id = ?3",
-            params![progress, Utc::now().to_rfc3339(), book_id],
+            "UPDATE books SET current_chapter = ?1, current_line_index = ?2, last_read = ?3 WHERE id = ?4",
+            params![current_chapter, current_line_index, Utc::now().to_rfc3339(), book_id],
         )?;
 
         Ok(())
@@ -370,13 +390,11 @@ impl DatabaseManager {
 
     /// 获取图书的所有书签
     pub fn get_bookmarks(&self, book_id: &str) -> AppResult<Vec<Bookmark>> {
-        // 添加输入验证
         if book_id.is_empty() {
             return Err(AppError::Generic("book_id 不能为空".to_string()));
         }
 
         let conn = self.connection.lock().map_err(|e| {
-            eprintln!("获取数据库锁失败: {}", e);
             AppError::Generic(format!("Failed to acquire database lock: {}", e))
         })?;
 
@@ -385,13 +403,9 @@ impl DatabaseManager {
             SELECT id, book_id, position, chapter_index, note, created_at
             FROM bookmarks WHERE book_id = ?1 ORDER BY position
             "#,
-        ).map_err(|e| {
-            eprintln!("准备SQL语句失败: {}", e);
-            e
-        })?;
+        )?;
 
         let bookmark_iter = stmt.query_map([book_id], |row| {
-            // 安全地获取每个字段
             let id: i64 = row.get(0)?;
             let book_id: String = row.get(1)?;
             let position: i64 = row.get(2)?;
@@ -399,45 +413,29 @@ impl DatabaseManager {
             let note: Option<String> = row.get(4)?;
             let created_at_str: String = row.get(5)?;
 
-            // 安全地解析时间戳
             let created_at = match DateTime::parse_from_rfc3339(&created_at_str) {
                 Ok(dt) => dt.with_timezone(&Utc),
-                Err(e) => {
-                    eprintln!("解析书签时间戳失败: {} -> {}", created_at_str, e);
-                    Utc::now()
-                }
+                Err(_) => Utc::now()
             };
 
-            let bookmark = Bookmark {
+            Ok(Bookmark {
                 id,
                 book_id,
                 position,
                 chapter_index,
                 note,
                 created_at,
-            };
-
-            Ok(bookmark)
-        }).map_err(|e| {
-            eprintln!("执行查询失败: {}", e);
-            e
+            })
         })?;
 
         let mut bookmarks = Vec::new();
         for bookmark_result in bookmark_iter {
             match bookmark_result {
-                Ok(bookmark) => {
-                    bookmarks.push(bookmark);
-                }
-                Err(e) => {
-                    eprintln!("解析书签数据失败: {}", e);
-                    // 继续处理其他书签，不因单个书签错误而中断
-                    continue;
-                }
+                Ok(bookmark) => bookmarks.push(bookmark),
+                Err(_) => continue,
             }
         }
 
-        println!("成功加载 {} 个书签 for book_id: {}", bookmarks.len(), book_id);
         Ok(bookmarks)
     }
 
@@ -507,7 +505,7 @@ impl DatabaseManager {
                 enabled: row.get(6)?,
                 plugin_path: row.get(7)?,
                 installed_at: DateTime::parse_from_rfc3339(&installed_at_str)
-                    .map_err(|e| rusqlite::Error::InvalidColumnType(8, "installed_at".to_string(), rusqlite::types::Type::Text))?
+                    .map_err(|_e| rusqlite::Error::InvalidColumnType(8, "installed_at".to_string(), rusqlite::types::Type::Text))?
                     .with_timezone(&Utc),
             })
         })?;

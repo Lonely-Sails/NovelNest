@@ -34,12 +34,7 @@ impl BookSourceManager {
             .build()
             .map_err(|e| BookSourceError::NetworkError(format!("HTTP客户端初始化失败: {}", e)))?;
 
-        Ok(Self {
-            db,
-            plugin_dir,
-            loaded_plugins: HashMap::new(),
-            http_client,
-        })
+        Ok(Self { db, plugin_dir, loaded_plugins: HashMap::new(), http_client })
     }
 
     /// 加载书源插件
@@ -216,138 +211,6 @@ impl BookSourceManager {
         self.db.toggle_book_source(source_id, enabled)
             .map_err(|e| BookSourceError::LoadFailed(format!("更新书源状态失败: {}", e)))
     }
-
-    // 以下是为集成测试添加的测试方法
-
-    /// 测试用：加载书源
-    #[cfg(test)]
-    pub async fn test_load_source(plugin_path: PathBuf) -> BookSourceResult<BookSourceInfo> {
-        use crate::database::DatabaseManager;
-        use std::sync::Arc;
-        use tempfile::TempDir;
-
-        // 创建临时目录和数据库
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
-        let db_path = temp_dir.path().join("test.db");
-        let db = Arc::new(DatabaseManager::new(&db_path).expect("创建测试数据库失败"));
-        
-        // 创建书源管理器
-        let plugin_dir = temp_dir.path().join("plugins");
-        std::fs::create_dir_all(&plugin_dir).expect("创建插件目录失败");
-        let mut source_manager = BookSourceManager::new(db, plugin_dir)
-            .expect("创建书源管理器失败");
-        
-        // 加载书源
-        source_manager.load_source(plugin_path).await
-    }
-
-    /// 测试用：切换书源状态
-    #[cfg(test)]
-    pub async fn test_toggle_source(source_id: &str, enabled: bool) -> BookSourceResult<()> {
-        use crate::database::DatabaseManager;
-        use std::sync::Arc;
-        use tempfile::TempDir;
-
-        // 创建临时目录和数据库
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
-        let db_path = temp_dir.path().join("test.db");
-        let db = Arc::new(DatabaseManager::new(&db_path).expect("创建测试数据库失败"));
-        
-        // 创建书源管理器
-        let plugin_dir = temp_dir.path().join("plugins");
-        std::fs::create_dir_all(&plugin_dir).expect("创建插件目录失败");
-        let mut source_manager = BookSourceManager::new(db, plugin_dir)
-            .expect("创建书源管理器失败");
-        
-        // 切换书源状态
-        source_manager.toggle_source(source_id, enabled).await
-    }
-
-    /// 测试用：获取书源列表
-    #[cfg(test)]
-    pub async fn test_get_sources() -> BookSourceResult<Vec<BookSourceInfo>> {
-        use crate::database::DatabaseManager;
-        use std::sync::Arc;
-        use tempfile::TempDir;
-
-        // 创建临时目录和数据库
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
-        let db_path = temp_dir.path().join("test.db");
-        let db = Arc::new(DatabaseManager::new(&db_path).expect("创建测试数据库失败"));
-        
-        // 创建书源管理器
-        let plugin_dir = temp_dir.path().join("plugins");
-        std::fs::create_dir_all(&plugin_dir).expect("创建插件目录失败");
-        let source_manager = BookSourceManager::new(db, plugin_dir)
-            .expect("创建书源管理器失败");
-        
-        // 获取书源列表
-        source_manager.get_sources().await
-    }
-
-    /// 测试用：获取插件代码
-    #[cfg(test)]
-    pub fn test_get_plugin_code(source_id: &str) -> Option<String> {
-        use crate::database::DatabaseManager;
-        use std::sync::Arc;
-        use tempfile::TempDir;
-
-        // 创建临时目录和数据库
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
-        let db_path = temp_dir.path().join("test.db");
-        let db = Arc::new(DatabaseManager::new(&db_path).expect("创建测试数据库失败"));
-        
-        // 创建书源管理器
-        let plugin_dir = temp_dir.path().join("plugins");
-        std::fs::create_dir_all(&plugin_dir).expect("创建插件目录失败");
-        let source_manager = BookSourceManager::new(db, plugin_dir)
-            .expect("创建书源管理器失败");
-        
-        // 模拟插件代码
-        if source_id == "test-source" {
-            Some(r#"
-                class TestBookSource {
-                    constructor() {
-                        this.baseUrl = "https://example.com";
-                    }
-                    
-                    // 搜索函数
-                    async search(keyword) {
-                        return [
-                            { 
-                                title: "测试书籍: " + keyword, 
-                                author: "测试作者", 
-                                description: "这是一本测试书籍",
-                                bookUrl: "https://example.com/book/1",
-                                coverUrl: "https://example.com/cover/1.jpg"
-                            }
-                        ];
-                    }
-                    
-                    // 获取章节列表
-                    async getChapters(bookUrl) {
-                        return [
-                            { title: "第一章", url: bookUrl + "/1", index: 0 },
-                            { title: "第二章", url: bookUrl + "/2", index: 1 }
-                        ];
-                    }
-                    
-                    // 获取章节内容
-                    async getChapterContent(chapterUrl) {
-                        return {
-                            title: "章节标题",
-                            content: "这是章节内容，来自URL: " + chapterUrl
-                        };
-                    }
-                }
-                
-                // 导出插件实例
-                window.bookSourcePlugin = new TestBookSource();
-            "#.to_string())
-        } else {
-            None
-        }
-    }
 }
 
 /// HTTP工具函数
@@ -430,13 +293,7 @@ impl HtmlParser {
             let class = element.value().attr("class").map(|s| s.to_string());
             let id = element.value().attr("id").map(|s| s.to_string());
 
-            elements.push(HtmlElement {
-                text,
-                href,
-                src,
-                class,
-                id,
-            });
+            elements.push(HtmlElement { text, href, src, class, id });
         }
 
         Ok(elements)

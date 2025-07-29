@@ -21,7 +21,7 @@
     <!-- 主要阅读区域 -->
     <div class="reader-content" @click="handleContentClick">
       <!-- 阅读区域 -->
-      <div class="reading-area" :style="readerStyles" ref="readingArea">
+      <div class="reading-area" :style="readerStyles" ref="readingArea" @scroll="handleScroll">
         <div v-if="loading" class="loading">
           <div class="loading-spinner"></div>
           <p>加载中...</p>
@@ -35,21 +35,10 @@
 
           <!-- 文本内容 -->
           <div class="content-text">
-            <p v-for="(line, index) in content" :key="index">{{ line }}</p>
+            <p v-for="(line, index) in content" :key="index" ref="textLines">{{ line }}</p>
           </div>
 
-          <!-- 翻页提示 -->
-          <div class="page-hint" v-if="showPageHint">
-            <span v-if="canGoNext">点击右侧或按 → 翻页</span>
-            <span v-else-if="hasNextChapter">点击右侧进入下一章</span>
-            <span v-else>已到达最后一页</span>
-          </div>
-        </div>
 
-        <!-- 翻页区域 -->
-        <div class="page-turn-areas">
-          <div class="page-turn-left" @click="previousPage" title="上一页"></div>
-          <div class="page-turn-right" @click="nextPage" title="下一页"></div>
         </div>
       </div>
 
@@ -143,6 +132,14 @@
                 <input type="checkbox" v-model="settings.autoSaveProgress" @change="updateSettings">
                 自动保存阅读进度
               </label>
+              <div class="progress-info-section">
+                <div class="current-progress">
+                  当前进度: {{ readingProgress.toFixed(3) * 100 }}%
+                </div>
+                <button @click="manualSaveProgress" class="action-btn save-progress-btn">
+                  手动保存进度
+                </button>
+              </div>
             </div>
 
             <div class="setting-group">
@@ -152,12 +149,7 @@
               </label>
             </div>
 
-            <div class="setting-group">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="settings.enableClickTurn" @change="updateSettings">
-                点击翻页
-              </label>
-            </div>
+
 
             <!-- 设置管理 -->
             <div class="setting-group">
@@ -223,8 +215,8 @@
     <div class="reader-footer" v-show="showControls">
       <div class="progress-section">
         <div class="progress-info">
-          <span class="page-info">{{ currentPage + 1 }} / {{ totalPages }}</span>
-          <span class="progress-percent">{{ Math.round(readingProgress * 100) }}%</span>
+          <span class="chapter-info">{{ currentChapter.title }}</span>
+          <span class="progress-percent">{{ readingProgress.toFixed(3) * 100 }}%</span>
         </div>
 
         <div class="progress-bar" @click="handleProgressClick">
@@ -234,21 +226,11 @@
 
       <div class="navigation-controls">
         <BaseButton @click="previousChapter" :disabled="!hasPreviousChapter" variant="outline" size="small"
-          title="上一章 (Ctrl+←)">
+          title="上一章 (←)">
           上一章
         </BaseButton>
 
-        <BaseButton @click="previousPage" :disabled="!canGoPrevious" variant="outline" size="small" title="上一页 (←)">
-          上一页
-        </BaseButton>
-
-        <BaseButton @click="nextPage" :disabled="!canGoNext && !hasNextChapter" variant="outline" size="small"
-          title="下一页 (→)">
-          {{ canGoNext ? '下一页' : (hasNextChapter ? '下一章' : '完') }}
-        </BaseButton>
-
-        <BaseButton @click="nextChapter" :disabled="!hasNextChapter" variant="outline" size="small"
-          title="下一章 (Ctrl+→)">
+        <BaseButton @click="nextChapter" :disabled="!hasNextChapter" variant="outline" size="small" title="下一章 (→)">
           下一章
         </BaseButton>
       </div>
@@ -272,17 +254,25 @@ import { useRoute } from 'vue-router'
 import { invoke } from '@tauri-apps/api/core'
 import SearchPanel from '../components/SearchPanel.vue'
 import BookmarkPanel from '../components/BookmarkPanel.vue'
+import BaseButton from '../components/base/BaseButton.vue'
 import { useToast } from '../composables/useToast'
+import { createDebouncedFunction } from '../utils/debounce.js'
 
 // 路由和消息提示
 const route = useRoute()
 const { showSuccess, showError, showInfo } = useToast()
+
+// 防抖函数引用（稍后初始化）
+let debouncedSaveProgress = null
+let saveProgressImmediately = null
+let cancelSaveProgress = null
 
 // 基础状态
 const book = ref(null)
 const content = ref([])
 const loading = ref(false)
 const readingArea = ref(null)
+const textLines = ref([])
 const bookmarks = ref([])
 
 // UI 状态
@@ -291,14 +281,13 @@ const showToc = ref(false)
 const showSearch = ref(false)
 const showBookmarks = ref(false)
 const showControls = ref(true)
-const showPageHint = ref(false)
+
 
 // 阅读状态
-const currentPage = ref(0)
-const totalPages = ref(1)
 const currentChapterIndex = ref(0)
 const chapters = ref([])
 const searchHighlight = ref('')
+const scrollPosition = ref(0) // 滚动位置，用于计算全书进度
 
 // 阅读设置
 const settings = ref({
@@ -310,8 +299,7 @@ const settings = ref({
   showChapterTitle: true,
   enablePageAnimation: true,
   autoSaveProgress: true,
-  enableKeyboardShortcuts: true,
-  enableClickTurn: true
+  enableKeyboardShortcuts: true
 })
 
 // 主题配置
@@ -331,17 +319,29 @@ const showChapterTitle = computed(() => {
   return settings.value.showChapterTitle && currentChapter.value
 })
 
+// 获取当前章节的滚动进度
+const getScrollProgress = () => {
+  if (!readingArea.value) return 0
+
+  const element = readingArea.value
+  const scrollTop = element.scrollTop
+  const scrollHeight = element.scrollHeight
+  const clientHeight = element.clientHeight
+
+  if (scrollHeight <= clientHeight) return 1
+
+  return Math.min(scrollTop / (scrollHeight - clientHeight), 1)
+}
+
 const readingProgress = computed(() => {
-  if (totalPages.value === 0) return 0
-  return currentPage.value / totalPages.value
-})
+  if (chapters.value.length === 0) return 0
 
-const canGoPrevious = computed(() => {
-  return currentPage.value > 0
-})
+  // 计算全书进度：当前章节在所有章节中的位置 + 当前章节内的滚动进度
+  const chapterProgress = currentChapterIndex.value / chapters.value.length
+  const scrollProgress = getScrollProgress()
+  const chapterWeight = 1 / chapters.value.length
 
-const canGoNext = computed(() => {
-  return currentPage.value < totalPages.value - 1
+  return chapterProgress + (scrollProgress * chapterWeight)
 })
 
 const hasPreviousChapter = computed(() => {
@@ -365,7 +365,6 @@ const readerStyles = computed(() => {
   }
 })
 
-// 方法
 const loadBook = async () => {
   const bookId = route.params.id
   loading.value = true
@@ -373,7 +372,7 @@ const loadBook = async () => {
   try {
     // 从后端获取图书信息
     const books = await invoke('get_books')
-    const bookData = books.find(b => b.id === bookId)
+    const bookData = books.find(book => book.id === bookId)
     if (!bookData) {
       showError('图书不存在！');
       console.error('图书不存在:', bookId)
@@ -386,23 +385,19 @@ const loadBook = async () => {
     const chaptersData = await invoke('get_book_chapters', { bookId })
     chapters.value = chaptersData || []
 
+    // 先加载书签
+    loadBookmarks()
+    // 加载阅读进度
+    await loadReadingProgress()
+
     // 获取当前章节内容
-    if (chapters.value.length > 0) {
+    if (chapters.value.length > 0)
       await loadChapterContent(currentChapterIndex.value)
-    } else {
+    else {
       // 如果没有章节数据，直接加载全部内容
       const contentData = await invoke('get_book_content', { bookId })
       content.value = contentData || []
     }
-
-    calculatePages()
-
-    // 加载阅读进度
-    loadReadingProgress()
-
-    // 加载书签
-    loadBookmarks()
-
   } catch (error) {
     console.error('加载图书失败:', error)
     showError('加载图书失败: ' + error.message)
@@ -423,10 +418,13 @@ const loadChapterContent = async (chapterIndex) => {
 
     content.value = chapterContent?.content ?? []
     currentChapterIndex.value = chapterIndex
-    currentPage.value = 0
-    calculatePages()
-    // 保存阅读进度
-    if (settings.value.autoSaveProgress) saveReadingProgress()
+
+    // 重置滚动位置到顶部
+    if (readingArea.value) readingArea.value.scrollTop = 0
+
+    // 章节切换后延迟保存进度，避免影响切换速度
+    if (settings.value.autoSaveProgress && debouncedSaveProgress)
+      debouncedSaveProgress()
 
   } catch (error) {
     console.error('加载章节内容失败:', error)
@@ -461,17 +459,27 @@ const loadBookmarks = async () => {
   }
 }
 
-const calculatePages = () => {
-  // 根据当前阅读区域大小和内容计算页数
-  if (!readingArea.value || !content.value) {
-    totalPages.value = 1
-    return
-  }
+// 监听滚动事件来更新进度
+const handleScroll = () => {
+  scrollPosition.value = readingArea.value?.scrollTop || 0
 
-  // 简化的页数计算 - 实际应用中可能需要更复杂的算法
-  const wordCount = content.value.join('').length
-  const wordsPerPage = settings.value.fontSize > 18 ? 600 : 800
-  totalPages.value = Math.max(1, Math.ceil(wordCount / wordsPerPage))
+  if (settings.value.autoSaveProgress && debouncedSaveProgress) {
+    // 使用防抖机制，避免频繁保存
+    debouncedSaveProgress()
+  }
+}
+
+// 空格键向下滚动功能
+const scrollDown = () => {
+  if (!readingArea.value) return
+
+  const element = readingArea.value
+  const scrollAmount = element.clientHeight * 0.8 // 滚动80%的可视区域高度
+
+  element.scrollBy({
+    top: scrollAmount,
+    behavior: 'smooth'
+  })
 }
 
 // 设置相关方法
@@ -571,15 +579,13 @@ const adjustMargin = (delta) => {
 const updateSettings = () => {
   // 保存设置到本地存储
   localStorage.setItem('reader_settings', JSON.stringify(settings.value))
-  calculatePages()
 }
 
 const loadSettings = () => {
   try {
     const savedSettings = localStorage.getItem('reader_settings')
-    if (savedSettings) {
+    if (savedSettings)
       settings.value = { ...settings.value, ...JSON.parse(savedSettings) }
-    }
   } catch (error) {
     console.error('加载阅读设置失败:', error)
   }
@@ -595,8 +601,7 @@ const resetSettings = () => {
     showChapterTitle: true,
     enablePageAnimation: true,
     autoSaveProgress: true,
-    enableKeyboardShortcuts: true,
-    enableClickTurn: true
+    enableKeyboardShortcuts: true
   }
   updateSettings()
   showInfo('已重置阅读设置')
@@ -635,7 +640,6 @@ const importSettings = (event) => {
         if (data) {
           settings.value = { ...settings.value, ...data }
           updateSettings()
-          calculatePages()
           showSuccess('设置导入成功')
         }
       } catch (error) {
@@ -650,28 +654,7 @@ const importSettings = (event) => {
   }
 }
 
-// 翻页相关方法
-const previousPage = () => {
-  if (canGoPrevious.value) {
-    currentPage.value--
-    if (settings.value.autoSaveProgress) {
-      saveReadingProgress()
-    }
-  } else if (hasPreviousChapter.value) {
-    previousChapter()
-  }
-}
-
-const nextPage = () => {
-  if (canGoNext.value) {
-    currentPage.value++
-    if (settings.value.autoSaveProgress) {
-      saveReadingProgress()
-    }
-  } else if (hasNextChapter.value) {
-    nextChapter()
-  }
-}
+// 章节导航方法
 
 const previousChapter = () => {
   if (hasPreviousChapter.value) {
@@ -680,9 +663,7 @@ const previousChapter = () => {
 }
 
 const nextChapter = () => {
-  if (hasNextChapter.value) {
-    loadChapterContent(currentChapterIndex.value + 1)
-  }
+  if (hasNextChapter.value) loadChapterContent(currentChapterIndex.value + 1)
 }
 
 const goToChapter = (index) => {
@@ -692,17 +673,31 @@ const goToChapter = (index) => {
   }
 }
 
-const goToPosition = (position) => {
-  if (position >= 0 && position <= 1) {
-    const targetPage = Math.floor(position * totalPages.value)
-    currentPage.value = Math.max(0, Math.min(targetPage, totalPages.value - 1))
-    if (settings.value.autoSaveProgress) {
-      saveReadingProgress()
+const goToPosition = async (position) => {
+  if (position >= 0 && position <= 1 && chapters.value.length > 0) {
+    console.log('跳转到进度位置:', Math.round(position * 100) + '%')
+
+    // 计算目标章节
+    const totalChapters = chapters.value.length
+    const targetChapterIndex = Math.floor(position * totalChapters)
+
+    console.log('目标章节:', targetChapterIndex)
+
+    // 如果需要切换章节
+    if (targetChapterIndex !== currentChapterIndex.value) {
+      console.log('需要切换章节，从', currentChapterIndex.value, '到', targetChapterIndex)
+      await loadChapterContent(Math.min(targetChapterIndex, totalChapters - 1))
+
+      // 等待章节内容渲染
+      await nextTick()
+      await new Promise(resolve => setTimeout(resolve, 300))
     }
   }
 }
 
-const goToBookmark = (bookmark) => {
+
+
+const goToBookmark = async (bookmark) => {
   try {
     if (!bookmark) {
       console.warn('goToBookmark: 无效的书签对象')
@@ -711,10 +706,13 @@ const goToBookmark = (bookmark) => {
 
     console.log('跳转到书签:', bookmark)
 
-    // 简化跳转逻辑，避免复杂的异步操作
-    if (typeof bookmark.position === 'number') {
-      const normalizedPosition = bookmark.position / 10000 // 将整数位置转换为0-1的进度
-      goToPosition(normalizedPosition)
+    // 如果书签有章节信息，直接跳转到对应章节
+    if (bookmark.chapter_index !== null && bookmark.chapter_index !== undefined) {
+      if (bookmark.chapter_index !== currentChapterIndex.value && chapters.value[bookmark.chapter_index]) {
+        await loadChapterContent(bookmark.chapter_index)
+        await nextTick()
+        await new Promise(resolve => setTimeout(resolve, 300))
+      }
     }
 
     showBookmarks.value = false
@@ -730,31 +728,26 @@ const handleProgressClick = (event) => {
 
   const clickX = event.clientX - rect.left
   const progress = clickX / rect.width
-  goToPosition(progress)
+
+  // 计算目标章节
+  const targetChapterIndex = Math.floor(progress * chapters.value.length)
+  if (targetChapterIndex >= 0 && targetChapterIndex < chapters.value.length) {
+    goToChapter(targetChapterIndex)
+  }
 }
 
 const handleContentClick = (event) => {
-  if (!settings.value.enableClickTurn) return
-
-  const rect = readingArea.value?.getBoundingClientRect()
-  if (!rect) return
-
-  const clickX = event.clientX - rect.left
-  const centerX = rect.width / 2
-
-  if (clickX < centerX / 2) {
-    previousPage()
-  } else if (clickX > centerX + centerX / 2) {
-    nextPage()
-  }
+  // 移除点击翻页功能，保持点击显示/隐藏控制栏的功能
+  setHideControlsTimer()
 }
 
 const addBookmark = async (note = '') => {
   if (!book.value) return
 
   try {
-    // 将阅读进度转换为整数位置（后端需要整数）
-    const position = Math.round(readingProgress.value * 10000)
+    // 使用当前显示窗口最下面一行的索引作为位置
+    const currentLineIndex = getCurrentVisibleLineIndex()
+    const position = currentLineIndex
 
     const result = await invoke('add_bookmark', {
       bookId: book.value.id,
@@ -791,28 +784,143 @@ const highlightSearchText = (text) => {
   // 实现文本高亮逻辑
 }
 
+// 上次保存的进度状态，用于避免重复保存
+let lastSavedChapter = -1
+let lastSavedLineIndex = -1
+
+// 计算当前显示窗口最下面一行的索引（基于实际的p标签）
+const getCurrentVisibleLineIndex = () => {
+  if (!readingArea.value) return 0
+
+  try {
+    const readingAreaElement = readingArea.value
+    const scrollTop = readingAreaElement.scrollTop
+    const clientHeight = readingAreaElement.clientHeight
+    
+    // 获取所有的p标签元素
+    const paragraphs = readingAreaElement.querySelectorAll('.content-text p')
+    if (paragraphs.length === 0) return 0
+
+    // 计算可视区域的顶部和底部位置（相对于readingArea）
+    const viewportTop = scrollTop
+    const viewportBottom = scrollTop + clientHeight
+
+    let lastVisibleIndex = 0
+
+    // 遍历所有p标签，找到最后一个在可视区域内的
+    for (let i = 0; i < paragraphs.length; i++) {
+      const paragraph = paragraphs[i]
+      const rect = paragraph.getBoundingClientRect()
+      const readingAreaRect = readingAreaElement.getBoundingClientRect()
+      
+      // 计算p标签相对于readingArea的位置
+      const paragraphTop = rect.top - readingAreaRect.top + scrollTop
+      const paragraphBottom = paragraphTop + rect.height
+
+      // 检查p标签是否在可视区域内
+      if (paragraphTop < viewportBottom && paragraphBottom > viewportTop) {
+        lastVisibleIndex = i
+      }
+      
+      // 如果p标签完全在可视区域下方，停止检查
+      if (paragraphTop >= viewportBottom) {
+        break
+      }
+    }
+
+    return lastVisibleIndex
+  } catch (error) {
+    console.error('计算当前可见行索引失败:', error)
+    return 0
+  }
+}
+
+// 根据行索引滚动到指定位置（基于实际的p标签）
+const scrollToLineIndex = (lineIndex) => {
+  if (!readingArea.value || lineIndex < 0) return
+
+  try {
+    const readingAreaElement = readingArea.value
+    const paragraphs = readingAreaElement.querySelectorAll('.content-text p')
+    
+    if (paragraphs.length === 0 || lineIndex >= paragraphs.length) return
+
+    // 获取目标p标签
+    const targetParagraph = paragraphs[lineIndex]
+    if (!targetParagraph) return
+
+    // 计算目标p标签的位置
+    const rect = targetParagraph.getBoundingClientRect()
+    const readingAreaRect = readingAreaElement.getBoundingClientRect()
+    const currentScrollTop = readingAreaElement.scrollTop
+    
+    // 计算目标滚动位置（让目标p标签显示在可视区域顶部）
+    const targetScrollTop = rect.top - readingAreaRect.top + currentScrollTop
+    
+    readingAreaElement.scrollTop = targetScrollTop
+    console.log(`滚动到行索引 ${lineIndex}，滚动位置: ${targetScrollTop}`)
+  } catch (error) {
+    console.error('滚动到指定行索引失败:', error)
+  }
+}
+
 const saveReadingProgress = async () => {
   if (!book.value) return
 
   try {
+    const currentLineIndex = getCurrentVisibleLineIndex()
+
+    // 检查是否需要保存（避免重复保存相同的进度）
+    if (currentChapterIndex.value === lastSavedChapter && currentLineIndex === lastSavedLineIndex) {
+      return
+    }
+
     const progressData = {
       bookId: book.value.id,
       chapter: currentChapterIndex.value,
-      page: currentPage.value,
-      progress: readingProgress.value,
+      scrollPosition: scrollPosition.value,
+      lineIndex: currentLineIndex,
       timestamp: Date.now()
     }
 
-    // 保存到本地存储（临时方案）
+    // 保存到本地存储（作为备份）
     localStorage.setItem(`reading_progress_${book.value.id}`, JSON.stringify(progressData))
 
-    // 调用后端API保存进度
+    // 调用后端API保存进度信息
     await invoke('save_reading_progress', {
       bookId: book.value.id,
-      progress: readingProgress.value
+      currentChapter: currentChapterIndex.value,
+      currentLineIndex: currentLineIndex
     })
+
+    // 更新上次保存的状态
+    lastSavedChapter = currentChapterIndex.value
+    lastSavedLineIndex = currentLineIndex
+
+    console.log(`阅读进度已保存: 章节: ${currentChapterIndex.value}, 行: ${currentLineIndex}`)
   } catch (error) {
     console.error('保存阅读进度失败:', error)
+    // 即使后端保存失败，本地存储仍然可用
+  }
+}
+
+// 初始化防抖保存函数（在 saveReadingProgress 定义之后）
+const debouncedFunctions = createDebouncedFunction(saveReadingProgress, 2000)
+debouncedSaveProgress = debouncedFunctions.debounced
+saveProgressImmediately = debouncedFunctions.immediate
+cancelSaveProgress = debouncedFunctions.cancel
+
+// 手动保存进度
+const manualSaveProgress = async () => {
+  try {
+    if (saveProgressImmediately) {
+      await saveProgressImmediately()
+    } else {
+      await saveReadingProgress()
+    }
+    showSuccess(`进度已保存: ${Math.round(readingProgress.value * 100)}%`)
+  } catch (error) {
+    showError('保存进度失败: ' + error.message)
   }
 }
 
@@ -820,33 +928,90 @@ const loadReadingProgress = async () => {
   if (!book.value) return
 
   try {
+    // 等待DOM完全渲染
+    await nextTick()
+
+    // 确保readingArea元素存在
+    if (!readingArea.value) {
+      console.warn('readingArea元素未找到，延迟重试')
+      setTimeout(() => loadReadingProgress(), 500)
+      return
+    }
+
     // 先尝试从后端获取进度
     try {
-      const progress = await invoke('get_reading_progress', { bookId: book.value.id })
-      if (progress !== undefined) {
-        // 计算当前页码
-        const pageIndex = Math.floor(progress * totalPages.value)
-        currentPage.value = Math.min(pageIndex, totalPages.value - 1)
+      const [savedChapter, savedLineIndex] = await invoke('get_reading_progress', { bookId: book.value.id })
+      if (savedChapter !== undefined && savedChapter !== null) {
+        console.log(`从后端加载进度: 章节: ${savedChapter}, 行: ${savedLineIndex}`)
+
+        // 如果需要切换到不同章节
+        if (savedChapter !== currentChapterIndex.value && chapters.value[savedChapter]) {
+          console.log('切换到保存的章节:', savedChapter)
+          await loadChapterContent(savedChapter)
+
+          // 等待章节内容渲染完成
+          await nextTick()
+        }
+
+        // 根据保存的行索引计算滚动位置
+        if (readingArea.value && savedLineIndex > 0) {
+          console.dir(textLines.value[savedLineIndex])
+          console.log('根据行索引恢复滚动位置: 行索引', savedLineIndex)
+        }
+
         return
       }
     } catch (e) {
-      console.log('从后端获取进度失败，尝试从本地存储获取')
+      console.log('从后端获取进度失败，尝试从本地存储获取:', e)
     }
 
     // 如果后端获取失败，尝试从本地存储获取
     const saved = localStorage.getItem(`reading_progress_${book.value.id}`)
     if (saved) {
       const progressData = JSON.parse(saved)
-      currentChapterIndex.value = progressData.chapter || 0
+      console.log('从本地存储加载进度:', progressData)
 
-      // 如果章节不同，需要加载对应章节
-      if (currentChapterIndex.value !== 0 && chapters.value[currentChapterIndex.value]) {
-        loadChapterContent(currentChapterIndex.value).then(() => {
-          currentPage.value = progressData.page || 0
-        })
-      } else {
-        currentPage.value = progressData.page || 0
+      const targetChapter = progressData.chapter || 0
+      const targetScrollPosition = progressData.scrollPosition || 0
+      const targetLineIndex = progressData.lineIndex || 0
+
+      // 如果需要切换到不同章节
+      if (targetChapter !== currentChapterIndex.value && chapters.value[targetChapter]) {
+        console.log('切换到章节:', targetChapter)
+        await loadChapterContent(targetChapter)
+
+        // 等待章节内容渲染完成
+        await nextTick()
+        await new Promise(resolve => setTimeout(resolve, 300))
+
+        // 优先使用行索引恢复位置
+        if (readingArea.value) {
+          if (targetLineIndex > 0) {
+            const lineHeight = 30
+            const estimatedScrollPosition = targetLineIndex * lineHeight
+            readingArea.value.scrollTop = estimatedScrollPosition
+            console.log('根据行索引恢复滚动位置:', estimatedScrollPosition, '行索引:', targetLineIndex)
+          } else if (targetScrollPosition > 0) {
+            readingArea.value.scrollTop = targetScrollPosition
+            console.log('根据滚动位置恢复:', targetScrollPosition)
+          }
+        }
+      } else if (readingArea.value) {
+        // 在当前章节内恢复滚动位置
+        await new Promise(resolve => setTimeout(resolve, 300))
+
+        if (targetLineIndex > 0) {
+          const lineHeight = 30
+          const estimatedScrollPosition = targetLineIndex * lineHeight
+          readingArea.value.scrollTop = estimatedScrollPosition
+          console.log('在当前章节根据行索引恢复滚动位置:', estimatedScrollPosition, '行索引:', targetLineIndex)
+        } else if (targetScrollPosition > 0) {
+          readingArea.value.scrollTop = targetScrollPosition
+          console.log('在当前章节根据滚动位置恢复:', targetScrollPosition)
+        }
       }
+    } else {
+      console.log('没有找到保存的阅读进度')
     }
   } catch (error) {
     console.error('加载阅读进度失败:', error)
@@ -878,20 +1043,17 @@ const handleKeydown = (event) => {
 
   switch (event.key) {
     case 'ArrowLeft':
-      if (event.ctrlKey) {
-        previousChapter()
-      } else {
-        previousPage()
-      }
+      previousChapter()
       event.preventDefault()
       break
 
     case 'ArrowRight':
-      if (event.ctrlKey) {
-        nextChapter()
-      } else {
-        nextPage()
-      }
+      nextChapter()
+      event.preventDefault()
+      break
+
+    case ' ': // 空格键
+      scrollDown()
       event.preventDefault()
       break
 
@@ -919,11 +1081,6 @@ const handleKeydown = (event) => {
       }
       break
 
-    case 'F11':
-      toggleFullscreen()
-      event.preventDefault()
-      break
-
     case 'b':
     case 'B':
       if (!event.ctrlKey) {
@@ -934,13 +1091,38 @@ const handleKeydown = (event) => {
   }
 }
 
-// 显示翻页提示
-const showPageHintTimer = () => {
-  showPageHint.value = true
 
-  setTimeout(() => {
-    showPageHint.value = false
-  }, 3000)
+
+// 页面离开前保存进度
+const handleBeforeUnload = () => {
+  if (settings.value.autoSaveProgress && book.value) {
+    // 取消防抖，立即保存
+    if (cancelSaveProgress) {
+      cancelSaveProgress()
+    }
+
+    // 使用同步方式保存到本地存储
+    const currentLineIndex = getCurrentVisibleLineIndex()
+    const progressData = {
+      bookId: book.value.id,
+      chapter: currentChapterIndex.value,
+      scrollPosition: scrollPosition.value,
+      lineIndex: currentLineIndex,
+      timestamp: Date.now()
+    }
+    localStorage.setItem(`reading_progress_${book.value.id}`, JSON.stringify(progressData))
+
+    // 立即保存到后端（同步调用）
+    try {
+      // 注意：这里使用同步的方式，但实际上invoke是异步的
+      // 在页面卸载时，异步操作可能不会完成
+      if (saveProgressImmediately) {
+        saveProgressImmediately()
+      }
+    } catch (error) {
+      console.error('页面卸载时保存进度失败:', error)
+    }
+  }
 }
 
 // 生命周期
@@ -951,15 +1133,27 @@ onMounted(async () => {
   // 添加事件监听
   document.addEventListener('click', handleClick)
   document.addEventListener('keydown', handleKeydown)
-
-  // 显示翻页提示
-  showPageHintTimer()
+  window.addEventListener('beforeunload', handleBeforeUnload)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClick)
   document.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('beforeunload', handleBeforeUnload)
   clearTimeout(hideControlsTimer)
+
+  // 取消防抖定时器
+  if (cancelSaveProgress) {
+    cancelSaveProgress()
+  }
+
+  // 组件卸载时最后保存一次进度
+  if (settings.value.autoSaveProgress && book.value) {
+    handleBeforeUnload() // 先同步保存到本地
+    if (saveProgressImmediately) {
+      saveProgressImmediately() // 立即保存到后端
+    }
+  }
 })
 </script>
 
@@ -1080,57 +1274,6 @@ onUnmounted(() => {
 .content-text p {
   margin-bottom: 1rem;
   text-indent: 2em;
-}
-
-/* 翻页区域 */
-.page-turn-areas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-}
-
-.page-turn-left,
-.page-turn-right {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  width: 20%;
-  cursor: pointer;
-  pointer-events: auto;
-}
-
-.page-turn-left {
-  left: 0;
-}
-
-.page-turn-right {
-  right: 0;
-}
-
-/* 翻页提示 */
-.page-hint {
-  position: absolute;
-  bottom: 2rem;
-  right: 2rem;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  animation: fadeIn 0.5s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
 }
 
 /* 设置面板 */
@@ -1267,6 +1410,31 @@ onUnmounted(() => {
 .export-btn,
 .import-btn {
   color: var(--accent-color);
+}
+
+.progress-info-section {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: var(--bg-primary);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.current-progress {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.save-progress-btn {
+  width: 100%;
+  background-color: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
+.save-progress-btn:hover {
+  background-color: var(--accent-color-hover);
 }
 
 /* 目录面板 */

@@ -63,16 +63,12 @@ const emit = defineEmits(['close'])
 
 // 处理遮罩层点击
 const handleOverlayClick = () => {
-  if (props.maskClosable && props.closable) {
-    emit('close')
-  }
+  if (props.maskClosable && props.closable) emit('close')
 }
 
 // 处理ESC键关闭
 const handleKeydown = (event) => {
-  if (event.key === 'Escape' && props.closable) {
-    emit('close')
-  }
+  if (event.key === 'Escape' && props.closable) emit('close')
 }
 
 // 组件挂载时添加键盘事件监听

@@ -82,98 +82,83 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 
-export default {
-  name: 'HomeView',
-  setup() {
-    const router = useRouter()
-    const { showInfo } = useToast()
-    
-    const totalBooks = ref(0)
-    const readingBooks = ref(0)
-    const completedBooks = ref(0)
-    const recentBooks = ref([])
+const router = useRouter()
+const { showInfo } = useToast()
 
-    const loadStats = async () => {
-      try {
-        // 这些命令将在后续任务中实现
-        // const books = await invoke('get_books')
-        // totalBooks.value = books.length
-        // readingBooks.value = books.filter(book => book.reading_progress > 0 && book.reading_progress < 1).length
-        // completedBooks.value = books.filter(book => book.reading_progress >= 1).length
-        // recentBooks.value = books.filter(book => book.last_read).slice(0, 6)
+const totalBooks = ref(0)
+const readingBooks = ref(0)
+const completedBooks = ref(0)
+const recentBooks = ref([])
 
-        // 临时数据用于展示
-        totalBooks.value = 12
-        readingBooks.value = 3
-        completedBooks.value = 8
-        recentBooks.value = [
-          {
-            id: 1,
-            title: '红楼梦',
-            author: '曹雪芹',
-            reading_progress: 0.65
-          },
-          {
-            id: 2,
-            title: '西游记',
-            author: '吴承恩',
-            reading_progress: 0.23
-          },
-          {
-            id: 3,
-            title: '三国演义',
-            author: '罗贯中',
-            reading_progress: 0.89
-          },
-          {
-            id: 4,
-            title: '水浒传',
-            author: '施耐庵',
-            reading_progress: 0.12
-          }
-        ]
-      } catch (error) {
-        console.error('加载统计数据失败:', error)
+const loadStats = async () => {
+  try {
+    // 这些命令将在后续任务中实现
+    // const books = await invoke('get_books')
+    // totalBooks.value = books.length
+    // readingBooks.value = books.filter(book => book.reading_progress > 0 && book.reading_progress < 1).length
+    // completedBooks.value = books.filter(book => book.reading_progress >= 1).length
+    // recentBooks.value = books.filter(book => book.last_read).slice(0, 6)
+
+    // 临时数据用于展示
+    totalBooks.value = 12
+    readingBooks.value = 3
+    completedBooks.value = 8
+    recentBooks.value = [
+      {
+        id: 1,
+        title: '红楼梦',
+        author: '曹雪芹',
+        reading_progress: 0.65
+      },
+      {
+        id: 2,
+        title: '西游记',
+        author: '吴承恩',
+        reading_progress: 0.23
+      },
+      {
+        id: 3,
+        title: '三国演义',
+        author: '罗贯中',
+        reading_progress: 0.89
+      },
+      {
+        id: 4,
+        title: '水浒传',
+        author: '施耐庵',
+        reading_progress: 0.12
       }
-    }
-
-    const importBook = async () => {
-      router.push('/library')
-      showInfo('请在图书库页面使用导入功能')
-    }
-
-    const openBook = (book) => {
-      router.push(`/reader/${book.id}`)
-    }
-
-    const getProgressVariant = (progress) => {
-      if (progress === 0) return 'secondary'
-      if (progress < 0.3) return 'warning'
-      if (progress < 0.8) return 'info'
-      if (progress < 1) return 'primary'
-      return 'success'
-    }
-
-    onMounted(() => {
-      loadStats()
-    })
-
-    return {
-      totalBooks,
-      readingBooks,
-      completedBooks,
-      recentBooks,
-      importBook,
-      openBook,
-      getProgressVariant
-    }
+    ]
+  } catch (error) {
+    console.error('加载统计数据失败:', error)
   }
 }
+
+const importBook = async () => {
+  router.push('/library')
+  showInfo('请在图书库页面使用导入功能')
+}
+
+const openBook = (book) => {
+  router.push(`/reader/${book.id}`)
+}
+
+const getProgressVariant = (progress) => {
+  if (progress === 0) return 'secondary'
+  if (progress < 0.3) return 'warning'
+  if (progress < 0.8) return 'info'
+  if (progress < 1) return 'primary'
+  return 'success'
+}
+
+onMounted(() => {
+  loadStats()
+})
 </script>
 
 <style scoped>

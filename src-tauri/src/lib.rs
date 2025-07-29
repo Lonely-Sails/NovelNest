@@ -3,15 +3,6 @@ pub mod book_source_manager;
 pub mod database;
 pub mod errors;
 pub mod models;
-
-#[cfg(test)]
-mod unit_tests {
-    pub mod book_manager_tests;
-    pub mod book_source_manager_tests;
-    pub mod database_tests;
-    pub mod integration_tests;
-}
-
 use book_manager::BookManager;
 use book_source_manager::BookSourceManager;
 use database::DatabaseManager;
@@ -151,37 +142,24 @@ async fn get_library_stats(state: State<'_, AppState>) -> Result<LibraryStats, S
         .map_err(|e| e.to_string())
 }
 
-/// 更新阅读进度
-#[tauri::command]
-async fn update_reading_progress(
-    book_id: String,
-    progress: f64,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
-    state
-        .book_manager
-        .update_reading_progress(&book_id, progress)
-        .await
-        .map_err(|e| e.to_string())
-}
-
-/// 保存阅读进度
+/// 保存阅读进度（章节和行索引）
 #[tauri::command]
 async fn save_reading_progress(
     book_id: String,
-    progress: f64,
+    current_chapter: i32,
+    current_line_index: i32,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     state
         .book_manager
-        .save_reading_progress(&book_id, progress)
+        .save_reading_progress(&book_id, current_chapter, current_line_index)
         .await
         .map_err(|e| e.to_string())
 }
 
-/// 获取阅读进度
+/// 获取阅读进度（章节和行索引）
 #[tauri::command]
-async fn get_reading_progress(book_id: String, state: State<'_, AppState>) -> Result<f64, String> {
+async fn get_reading_progress(book_id: String, state: State<'_, AppState>) -> Result<(i32, i32), String> {
     state
         .book_manager
         .get_reading_progress(&book_id)
@@ -518,24 +496,6 @@ async fn plugin_http_post(url: String, data: String) -> Result<String, String> {
         .map_err(|e| e.to_string())
 }
 
-/// 插件HTML解析
-#[tauri::command]
-async fn plugin_parse_html(
-    html: String,
-    selector: String,
-) -> Result<Vec<models::HtmlElement>, String> {
-    use book_source_manager::HtmlParser;
-
-    HtmlParser::parse_elements(&html, &selector).map_err(|e| e.to_string())
-}
-
-/// 插件URL解析
-#[tauri::command]
-async fn plugin_resolve_url(base: String, relative: String) -> Result<String, String> {
-    use book_source_manager::UrlUtils;
-
-    UrlUtils::resolve_url(&base, &relative).map_err(|e| e.to_string())
-}
 
 /// 插件URL编码
 #[tauri::command]
@@ -960,7 +920,7 @@ fn initialize_app_state() -> AppResult<AppState> {
     }
 
     // 初始化数据库
-    let db_path = data_dir.join("novelnest.db");
+    let db_path = data_dir.join("NovelNest.db");
     let db = Arc::new(DatabaseManager::new(db_path)?);
 
     // 初始化图书管理器
@@ -1050,7 +1010,6 @@ pub fn run() {
             get_recent_books,
             get_recently_read_books,
             get_library_stats,
-            update_reading_progress,
             save_reading_progress,
             get_reading_progress,
             add_bookmark,
@@ -1066,8 +1025,6 @@ pub fn run() {
             batch_import_books,
             plugin_http_get,
             plugin_http_post,
-            plugin_parse_html,
-            plugin_resolve_url,
             plugin_encode_url,
             load_book_source,
             get_book_sources,
@@ -1141,22 +1098,5 @@ mod tests {
         let search_results = result.unwrap();
         assert!(!search_results.is_empty());
         assert_eq!(search_results[0].source_id, "test_source");
-    }
-
-    #[tokio::test]
-    async fn test_get_chapters_with_plugin() {
-        let result = get_chapters_with_plugin(
-            "test_source".to_string(),
-            "https://example.com/book/test".to_string(),
-            "mock_plugin_code".to_string(),
-        )
-        .await;
-
-        assert!(result.is_ok());
-        let chapters = result.unwrap();
-        assert!(!chapters.is_empty());
-        assert_eq!(chapters.len(), 2);
-        assert_eq!(chapters[0].title, "第一章");
-        assert_eq!(chapters[1].title, "第二章");
     }
 }

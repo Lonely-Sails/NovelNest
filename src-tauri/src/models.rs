@@ -38,7 +38,8 @@ pub struct Book {
     pub file_size: i64,
     pub created_at: DateTime<Utc>,
     pub last_read: Option<DateTime<Utc>>,
-    pub reading_progress: f64,
+    pub current_chapter: i32,
+    pub current_line_index: i32,
     pub total_chapters: i32,
 }
 
@@ -59,7 +60,8 @@ impl Book {
             file_size,
             created_at: Utc::now(),
             last_read: None,
-            reading_progress: 0.0,
+            current_chapter: 0,
+            current_line_index: 0,
             total_chapters: 0,
         }
     }

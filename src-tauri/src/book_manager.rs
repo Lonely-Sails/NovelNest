@@ -309,22 +309,17 @@ impl BookManager {
         let mut format_counts = std::collections::HashMap::new();
         let mut total_size = 0i64;
         let mut books_with_progress = 0;
-        let mut total_progress = 0.0;
 
         for book in &all_books {
             *format_counts.entry(book.format.clone()).or_insert(0) += 1;
             total_size += book.file_size;
-            if book.reading_progress > 0.0 {
+            if book.current_chapter > 0 || book.current_line_index > 0 {
                 books_with_progress += 1;
-                total_progress += book.reading_progress;
             }
         }
 
-        let average_progress = if books_with_progress > 0 {
-            total_progress / books_with_progress as f64
-        } else {
-            0.0
-        };
+        // 简化统计，不再计算平均进度
+        let average_progress = 0.0;
 
         Ok(LibraryStats {
             total_books,
@@ -355,52 +350,39 @@ impl BookManager {
         Ok(())
     }
 
-    /// 更新阅读进度
-    pub async fn update_reading_progress(&self, book_id: &str, progress: f64) -> BookResult<()> {
-        self.db
-            .update_reading_progress(book_id, progress)
-            .map_err(|e| BookError::MetadataExtractionFailed(format!("更新阅读进度失败: {}", e)))
-    }
-
-    /// 保存阅读进度（带自动保存逻辑）
-    pub async fn save_reading_progress(&self, book_id: &str, progress: f64) -> BookResult<()> {
-        // 验证进度值范围
-        if !(0.0..=1.0).contains(&progress) {
-            return Err(BookError::InvalidProgress(format!(
-                "阅读进度必须在0.0到1.0之间，当前值: {}",
-                progress
-            )));
-        }
-
+    /// 保存阅读进度（章节和行索引）
+    pub async fn save_reading_progress(
+        &self, 
+        book_id: &str, 
+        current_chapter: i32, 
+        current_line_index: i32
+    ) -> BookResult<()> {
         // 验证图书是否存在
-        let book = self
+        let _book = self
             .db
             .get_book_by_id(book_id)
             .map_err(|e| BookError::MetadataExtractionFailed(format!("获取图书信息失败: {}", e)))?
             .ok_or_else(|| BookError::NotFound(format!("图书不存在: {}", book_id)))?;
 
-        // 只有当进度有显著变化时才保存（避免频繁写入）
-        let progress_diff = (progress - book.reading_progress).abs();
-        if progress_diff >= 0.01 || progress == 1.0 || progress == 0.0 {
-            self.db
-                .update_reading_progress(book_id, progress)
-                .map_err(|e| {
-                    BookError::MetadataExtractionFailed(format!("保存阅读进度失败: {}", e))
-                })?;
-        }
+        // 保存阅读进度信息
+        self.db
+            .update_reading_progress(book_id, current_chapter, current_line_index)
+            .map_err(|e| {
+                BookError::MetadataExtractionFailed(format!("保存阅读进度失败: {}", e))
+            })?;
 
         Ok(())
     }
 
     /// 获取阅读进度
-    pub async fn get_reading_progress(&self, book_id: &str) -> BookResult<f64> {
+    pub async fn get_reading_progress(&self, book_id: &str) -> BookResult<(i32, i32)> {
         let book = self
             .db
             .get_book_by_id(book_id)
             .map_err(|e| BookError::MetadataExtractionFailed(format!("获取图书信息失败: {}", e)))?
             .ok_or_else(|| BookError::NotFound(format!("图书不存在: {}", book_id)))?;
 
-        Ok(book.reading_progress)
+        Ok((book.current_chapter, book.current_line_index))
     }
 
     /// 添加书签

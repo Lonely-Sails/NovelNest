@@ -10,7 +10,12 @@
         <BaseButton @click="showInstallDialog = true" variant="primary" icon="📦">
           安装插件
         </BaseButton>
-        <BaseButton @click="refreshPlugins" variant="outline" :loading="loading" icon="🔄">
+        <BaseButton
+          @click="refreshPlugins"
+          variant="outline"
+          :loading="loading"
+          icon="🔄"
+        >
           刷新
         </BaseButton>
       </div>
@@ -36,7 +41,7 @@
     <div class="plugins-content">
       <Loading v-if="loading" message="加载插件中..." />
 
-      <BaseCard v-else-if="bookSources.length === 0" class="empty-state">
+      <BaseCard v-else-if="!bookSources.length" class="empty-state">
         <div class="empty-icon">🔌</div>
         <h3>暂无插件</h3>
         <p>点击"安装插件"按钮添加书源插件</p>
@@ -50,24 +55,39 @@
       <div v-else class="plugins-list">
         <div class="plugins-filter">
           <div class="filter-tabs">
-            <BaseButton :variant="currentFilter === 'all' ? 'primary' : 'outline'" size="small"
-              @click="currentFilter = 'all'">
+            <BaseButton
+              :variant="currentFilter === 'all' ? 'primary' : 'outline'"
+              size="small"
+              @click="currentFilter = 'all'"
+            >
               全部 ({{ bookSources.length }})
             </BaseButton>
-            <BaseButton :variant="currentFilter === 'enabled' ? 'primary' : 'outline'" size="small"
-              @click="currentFilter = 'enabled'">
+            <BaseButton
+              :variant="currentFilter === 'enabled' ? 'primary' : 'outline'"
+              size="small"
+              @click="currentFilter = 'enabled'"
+            >
               已启用 ({{ enabledSources.length }})
             </BaseButton>
-            <BaseButton :variant="currentFilter === 'disabled' ? 'primary' : 'outline'" size="small"
-              @click="currentFilter = 'disabled'">
+            <BaseButton
+              :variant="currentFilter === 'disabled' ? 'primary' : 'outline'"
+              size="small"
+              @click="currentFilter = 'disabled'"
+            >
               已禁用 ({{ disabledSources.length }})
             </BaseButton>
           </div>
         </div>
 
         <div class="plugins-grid">
-          <PluginCard v-for="plugin in filteredSources" :key="plugin.id" :plugin="plugin" @toggle="handleTogglePlugin"
-            @remove="handleRemovePlugin" @test="handleTestPlugin" />
+          <PluginCard
+            v-for="plugin in filteredSources"
+            :key="plugin.id"
+            :plugin="plugin"
+            @toggle="handleTogglePlugin"
+            @remove="handleRemovePlugin"
+            @test="handleTestPlugin"
+          />
         </div>
 
         <!-- 插件监控面板 -->
@@ -78,249 +98,204 @@
     </div>
 
     <!-- 安装插件对话框 -->
-    <Modal v-if="showInstallDialog" @close="showInstallDialog = false">
-      <template #header>
-        <h3>安装插件</h3>
-      </template>
-
-      <template #body>
-        <div class="install-dialog">
-          <div class="install-methods">
-            <div class="method-card" @click="selectInstallMethod('file')">
-              <div class="method-icon">📁</div>
-              <h4>从文件安装</h4>
-              <p>选择本地的 .js 插件文件</p>
-            </div>
-
-            <div class="method-card disabled" title="功能开发中">
-              <div class="method-icon">🌐</div>
-              <h4>在线安装</h4>
-              <p>从插件商店安装（开发中）</p>
-            </div>
+    <Modal v-if="showInstallDialog" title="安装插件" @close="showInstallDialog = false">
+      <div class="install-dialog">
+        <div class="install-methods">
+          <div class="method-card" @click="selectInstallMethod('file')">
+            <div class="method-icon">📁</div>
+            <h4>从文件安装</h4>
+            <p>选择本地的 .js 插件文件</p>
           </div>
 
-          <div v-if="installMethod === 'file'" class="file-install">
-            <div class="file-drop-zone" :class="{ 'drag-over': dragOver }" @drop="handleFileDrop"
-              @dragover.prevent="dragOver = true" @dragleave="dragOver = false" @click="selectFile">
-              <div class="drop-content">
-                <div class="drop-icon">📄</div>
-                <p>拖拽插件文件到此处，或点击选择文件</p>
-                <small>支持 .js 格式的插件文件</small>
-              </div>
-            </div>
-
-            <input ref="fileInput" type="file" accept=".js" style="display: none" @change="handleFileSelect" />
+          <div class="method-card disabled" title="功能开发中">
+            <div class="method-icon">🌐</div>
+            <h4>在线安装</h4>
+            <p>从插件商店安装（开发中）</p>
           </div>
         </div>
-      </template>
 
-      <template #footer>
+        <div v-if="installMethod === 'file'" class="file-install">
+          <div
+            class="file-drop-zone"
+            :class="{ 'drag-over': dragOver }"
+            @drop="handleFileDrop"
+            @dragover.prevent="dragOver = true"
+            @dragleave="dragOver = false"
+            @click="selectFile"
+          >
+            <div class="drop-content">
+              <div class="drop-icon">📄</div>
+              <p>拖拽插件文件到此处，或点击选择文件</p>
+              <small>支持 .js 格式的插件文件</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #actions>
         <BaseButton @click="showInstallDialog = false" variant="secondary">
           取消
         </BaseButton>
       </template>
     </Modal>
-
-    <!-- Toast 提示 -->
-    <Toast v-if="toast.show" :type="toast.type" :message="toast.message" @close="toast.show = false" />
   </div>
 </template>
 
-<script>
-import { usePluginStore } from '@/stores/pluginStore'
+<script setup>
 import PluginCard from '@/components/PluginCard.vue'
 import PluginMonitor from '@/components/PluginMonitor.vue'
 import Loading from '@/components/Loading.vue'
-import Modal from '@/components/Modal.vue'
-import Toast from '@/components/Toast.vue'
+import { useToast } from '@/composables/useToast'
+import { usePluginStore } from '@/stores/pluginStore'
 import { open } from '@tauri-apps/plugin-dialog'
+import { computed, ref, onMounted } from 'vue'
 
-export default {
-  name: 'PluginsView',
-  components: {
-    PluginCard,
-    PluginMonitor,
-    Loading,
-    Modal,
-    Toast
-  },
-  data() {
+const pluginStore = usePluginStore()
+const { showSuccess, showError } = useToast()
+
+const loading = ref(false)
+const currentFilter = ref('all')
+const showInstallDialog = ref(false)
+const installMethod = ref(null)
+const dragOver = ref(false)
+
+const bookSources = computed(() => pluginStore.bookSources)
+const enabledSources = computed(() => pluginStore.enabledSources)
+const disabledSources = computed(() => pluginStore.disabledSources)
+const filteredSources = computed(() => {
+  switch (currentFilter.value) {
+    case 'enabled':
+      return enabledSources.value
+    case 'disabled':
+      return disabledSources.value
+    default:
+      return bookSources.value
+  }
+})
+
+const loadPlugins = async () => {
+  loading.value = true
+  try {
+    await pluginStore.loadBookSources()
+  } catch (error) {
+    showError('加载插件失败: ' + error.message)
+  } finally {
+    loading.value = false
+  }
+}
+
+const refreshPlugins = async () => {
+  await loadPlugins()
+  showSuccess('插件列表已刷新')
+}
+
+const handleTogglePlugin = async (pluginId, enabled) => {
+  try {
+    await pluginStore.toggleBookSource(pluginId, enabled)
+    const action = enabled ? '启用' : '禁用'
+    showSuccess(`插件${action}成功`)
+  } catch (error) {
+    showError('操作失败: ' + error.message)
+    throw error
+  }
+}
+
+const handleRemovePlugin = async (pluginId) => {
+  try {
+    await pluginStore.removeBookSource(pluginId)
+    showSuccess('插件删除成功')
+  } catch (error) {
+    showError('删除失败: ' + error.message)
+    throw error
+  }
+}
+
+const handleTestPlugin = async (pluginId) => {
+  try {
+    // 使用插件商店的测试方法
+    const result = await pluginStore.testPlugin(pluginId)
+
+    if (result.success) {
+      return {
+        success: true,
+        count: result.searchCount,
+        details: result.details
+      }
+    } else {
+      return {
+        success: false,
+        error: result.error
+      }
+    }
+  } catch (error) {
     return {
-      loading: false,
-      currentFilter: 'all',
-      showInstallDialog: false,
-      installMethod: null,
-      dragOver: false,
-      toast: {
-        show: false,
-        type: 'info',
-        message: ''
-      }
-    }
-  },
-  computed: {
-    pluginStore() {
-      return usePluginStore()
-    },
-    bookSources() {
-      return this.pluginStore.bookSources
-    },
-    enabledSources() {
-      return this.pluginStore.enabledSources
-    },
-    disabledSources() {
-      return this.pluginStore.disabledSources
-    },
-    filteredSources() {
-      switch (this.currentFilter) {
-        case 'enabled':
-          return this.enabledSources
-        case 'disabled':
-          return this.disabledSources
-        default:
-          return this.bookSources
-      }
-    }
-  },
-  async mounted() {
-    await this.loadPlugins()
-  },
-  methods: {
-    async loadPlugins() {
-      this.loading = true
-      try {
-        await this.pluginStore.loadBookSources()
-      } catch (error) {
-        this.showToast('error', '加载插件失败: ' + error.message)
-      } finally {
-        this.loading = false
-      }
-    },
-
-    async refreshPlugins() {
-      await this.loadPlugins()
-      this.showToast('success', '插件列表已刷新')
-    },
-
-    async handleTogglePlugin(pluginId, enabled) {
-      try {
-        await this.pluginStore.toggleBookSource(pluginId, enabled)
-        const action = enabled ? '启用' : '禁用'
-        this.showToast('success', `插件${action}成功`)
-      } catch (error) {
-        this.showToast('error', '操作失败: ' + error.message)
-        throw error
-      }
-    },
-
-    async handleRemovePlugin(pluginId) {
-      try {
-        await this.pluginStore.removeBookSource(pluginId)
-        this.showToast('success', '插件删除成功')
-      } catch (error) {
-        this.showToast('error', '删除失败: ' + error.message)
-        throw error
-      }
-    },
-
-    async handleTestPlugin(pluginId) {
-      try {
-        // 使用插件商店的测试方法
-        const result = await this.pluginStore.testPlugin(pluginId)
-
-        if (result.success) {
-          return {
-            success: true,
-            count: result.searchCount,
-            details: result.details
-          }
-        } else {
-          return {
-            success: false,
-            error: result.error
-          }
-        }
-      } catch (error) {
-        return {
-          success: false,
-          error: error.message
-        }
-      }
-    },
-
-    selectInstallMethod(method) {
-      this.installMethod = method
-    },
-
-    selectFile() {
-      this.$refs.fileInput.click()
-    },
-
-    async handleFileSelect(event) {
-      const file = event.target.files[0]
-      if (file) {
-        await this.installPluginFile(file.path)
-      }
-    },
-
-    async handleFileDrop(event) {
-      event.preventDefault()
-      this.dragOver = false
-
-      const files = Array.from(event.dataTransfer.files)
-      const jsFile = files.find(file => file.name.endsWith('.js'))
-
-      if (jsFile) {
-        await this.installPluginFile(jsFile.path)
-      } else {
-        this.showToast('error', '请选择 .js 格式的插件文件')
-      }
-    },
-
-    async installPluginFile(filePath) {
-      try {
-        // 如果没有文件路径，打开文件选择对话框
-        if (!filePath) {
-          const selected = await open({
-            title: '选择插件文件',
-            filters: [{
-              name: 'JavaScript',
-              extensions: ['js']
-            }]
-          })
-
-          if (!selected) return
-          filePath = selected
-        }
-
-        this.loading = true
-        await this.pluginStore.loadBookSource(filePath)
-
-        this.showInstallDialog = false
-        this.installMethod = null
-        this.showToast('success', '插件安装成功')
-
-      } catch (error) {
-        this.showToast('error', '安装失败: ' + error.message)
-      } finally {
-        this.loading = false
-      }
-    },
-
-    showToast(type, message) {
-      this.toast = {
-        show: true,
-        type,
-        message
-      }
-
-      // 3秒后自动关闭
-      setTimeout(() => {
-        this.toast.show = false
-      }, 3000)
+      success: false,
+      error: error.message
     }
   }
 }
+
+const selectInstallMethod = (method) => {
+  installMethod.value = method
+}
+
+const selectFile = async () => {
+  await installPluginFile()
+}
+
+const handleFileDrop = async (event) => {
+  event.preventDefault()
+  dragOver.value = false
+
+  const files = Array.from(event.dataTransfer.files)
+  const jsFile = files.find(file => file.name.endsWith('.js'))
+
+  if (jsFile) {
+    // 在 Tauri 中，拖拽的文件可能有 path 属性
+    const filePath = jsFile.path || jsFile.name
+    if (filePath && filePath !== jsFile.name) {
+      await installPluginFile(filePath)
+    } else {
+      showError('无法获取文件路径，请使用文件选择功能')
+    }
+  } else {
+    showError('请选择 .js 格式的插件文件')
+  }
+}
+
+const installPluginFile = async (filePath) => {
+  try {
+    // 如果没有文件路径，打开文件选择对话框
+    if (!filePath) {
+      const selected = await open({
+        title: '选择插件文件',
+        filters: [{
+          name: 'JavaScript',
+          extensions: ['js']
+        }]
+      })
+
+      if (!selected) return
+      filePath = selected
+    }
+
+    loading.value = true
+    await pluginStore.loadBookSource(filePath)
+
+    showInstallDialog.value = false
+    installMethod.value = null
+    showSuccess('插件安装成功')
+
+  } catch (error) {
+    showError('安装失败: ' + error.message)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadPlugins()
+})
 </script>
 
 <style scoped>
@@ -362,12 +337,12 @@ export default {
     flex-direction: column;
     gap: 1rem;
   }
-  
+
   .header-actions {
     width: 100%;
     justify-content: stretch;
   }
-  
+
   .header-actions > * {
     flex: 1;
   }
